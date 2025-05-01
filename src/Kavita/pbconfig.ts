@@ -1,10 +1,10 @@
 import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 
 export default {
-    name: "Content Template",
+    name: "Kavita",
     description:
-        "Template that shows the functionality of content providing extensions.",
-    version: "1.0.0-alpha.2",
+        "Kavita client extension for Paperback",
+    version: "1.0.0-alpha.1",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.EVERYONE,
@@ -17,9 +17,9 @@ export default {
     badges: [],
     developers: [
         {
-            name: "Celarye",
-            website: "https://celarye.dev",
-            github: "https://github.com/Celarye",
+            name: "Swillam",
+            website: "",
+            github: "https://github.com/Swillam",
         },
     ],
 } satisfies SourceInfo;
