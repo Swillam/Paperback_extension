@@ -53,6 +53,10 @@ export class KavitaInterceptor extends PaperbackInterceptor {
             Authorization: await this.getAuthorizationString(),
         };
 
+        if (request.url.startsWith("FAKE*")) {
+            request.url = request.url.split("*REAL*").pop() ?? "";
+        }
+
         return request;
     }
 

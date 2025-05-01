@@ -97,8 +97,7 @@ export class ChapterProvider {
         const kavitaAPI = getKavitaApiKey();
 
         const request = {
-            url: `${kavitaURL}/Series/chapters`,
-            param: `?chapterId=${chapterId}`,
+            url: `${kavitaURL}/Series/chapter?chapterId=${chapterId}`,
             method: "GET",
         };
 
@@ -107,7 +106,7 @@ export class ChapterProvider {
         const pages: string[] = [];
         for (let i = 0; i < result.pages; i++) {
             pages.push(
-                `${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`,
+                `FAKE*/${i}?*REAL*${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`,
             );
         }
 
