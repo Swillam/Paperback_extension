@@ -9,8 +9,9 @@ import {
     Section,
     ToggleRow,
 } from "@paperback/types";
-import { State } from "../utils/StateUtil";
+
 import { getKavitaApiKey, getKavitaEnableRecursiveSearch, getKavitaPageSize, getKavitaUrl, setKavitaEnableRecursiveSearch } from "../settings";
+import { State } from "../utils/StateUtil";
 
 export class SettingsForm extends Form {
     override getSections(): Application.FormSectionElement[] {
@@ -26,10 +27,10 @@ export class SettingsForm extends Form {
 }
 
 class ServerSettingsForm extends Form {
-    private url = State<string>;
-    private apikey = State<string>;
-    private pageSize = State<string>;
-    private enableRecursiveSearch = State<boolean>;
+    private url: State<string>;
+    private apikey: State<string>;
+    private pageSize: State<string>;
+    private enableRecursiveSearch: State<boolean>;
 
     constructor() {
         super();
@@ -64,7 +65,6 @@ class ServerSettingsForm extends Form {
                     title: "Page Size",
                     value: this.pageSize.value,
                     onValueChange: this.pageSize.selector,
-                    keyboardType: "numeric",
                 }),
             ]),
             Section("Search", [

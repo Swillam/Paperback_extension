@@ -1,12 +1,10 @@
 import {
-	PartialSourceManga,
     PagedResults,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
     TagSection,
     Tag,
-    URL,
 } from "@paperback/types";
 
 import { fetchJSON } from "../utils/CommonUtils";
@@ -35,7 +33,7 @@ export class SearchProvider {
 
         for (const library of libraryResult) {
             if (library.type === 2) continue;
-            includeLibraryIds.push(library.id);
+            includeLibraryIds.push(library.id.toString());
         }
 
         const tagNames: string[] = ['genres', 'people', 'tags'];
@@ -51,16 +49,16 @@ export class SearchProvider {
             const names: string[] = [];
             const tags: Tag[] = [];
 
-            result.forEach(async (item: any) => {
+            result.forEach((item: any) => {
                 switch (tagName) {
                     case 'people':
                         if (!names.includes(item.name)) {
                             names.push(item.name);
-                            tags.push({id: `${tagName}-${item.role}.${item.id}`, label: item.name})
+                            tags.push({id: `${tagName}-${item.role}.${item.id}`, title: item.name})
                         }
                         break;
                     default:
-                        tags.push({id: `${tagName}-${item.id}`, label: item.title})
+                        tags.push({id: `${tagName}-${item.id}`, title: item.title})
                 }
             });
 
@@ -128,16 +126,16 @@ export class SearchProvider {
     ): Promise<PagedResults<SearchResultItem>> {
         const kavitaAPI = getKavitaApiKey();
         const kavitaURL = getKavitaUrl();
-        const pageSize:number = +getKavitaPageSize();
+        const pageSize: number = +getKavitaPageSize();
         const enableRecursiveSearch = getKavitaEnableRecursiveSearch();
-        const page: number = metadata?.page ?? 0;
+        const page: number = metadata?.offset ?? 0;
 
         const titleSearchIds: string[] = [];
 
-        const tagSearchTiles: PartialSourceManga[] = [];
-        const titleSearchTiles: PartialSourceManga[] = [];
+        const tagSearchTiles: SearchResultItem[] = [];
+        const titleSearchTiles: SearchResultItem[] = [];
 
-        let result: any
+        let result: SearchResultItem[] = [];
 
         if (typeof query.title === 'string' && query.title !== '') {			
             const titleRequest = {
@@ -154,7 +152,7 @@ export class SearchProvider {
                 titleSearchIds.push(manga.seriesId);
                 titleSearchTiles.push({
                         title: manga.name,
-                        image: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
+                        imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
                         mangaId: `${manga.seriesId}`,
                         subtitle: undefined
                 });
@@ -189,7 +187,7 @@ export class SearchProvider {
                                 titleSearchIds.push(manga.id);
                                 titleSearchTiles.push({
                                         title: manga.name,
-                                        image: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                                        imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
                                         mangaId: `${manga.id}`,
                                         subtitle: undefined
                                     });
@@ -200,14 +198,14 @@ export class SearchProvider {
             }
         }
 
-        if (typeof query.includedTags !== 'undefined') {
+        if (query.filters.length > 0) {
             const body: any = {};
             const peopleTags: string[] = [];
 
-            query.includedTags.forEach(async (tag) => {
+            query.filters.forEach(async (tag) => {
                 switch (tag.id.split('-')[0]) {
                     case 'people':
-                        peopleTags.push(tag.label);
+                        peopleTags.push(tag.id);
                         break;
                     default:
                         body[tag.id.split('-')[0] ?? ''] = body[tag.id.split('-')[0] ?? ''] ?? []
@@ -240,22 +238,20 @@ export class SearchProvider {
             for (const manga of tagResult) {
                 tagSearchTiles.push({
                         title: manga.name,
-                        image: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                        imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
                         mangaId: `${manga.id}`,
                         subtitle: undefined
                     });
             }
         }
 
-        result = (tagSearchTiles.length > 0 && titleSearchTiles.length > 0) ? tagSearchTiles.filter((value) => titleSearchTiles.some((target) => target.image === value.image)) : titleSearchTiles.concat(tagSearchTiles)
+        result = (tagSearchTiles.length > 0 && titleSearchTiles.length > 0) ? tagSearchTiles.filter((value) => titleSearchTiles.some((target) => target.imageUrl === value.imageUrl)) : titleSearchTiles.concat(tagSearchTiles)
     
-
         result = result.slice(page * pageSize, (page + 1) * pageSize);
-        metadata = result.length === 0 ? undefined : { page: page + 1 };
 
         return {
-            results: result,
-            metadata: metadata
+            items: result,
+            metadata: { offset: page + 1, collectedIds: metadata.collectedIds }
         };
     }
 }
