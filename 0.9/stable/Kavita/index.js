@@ -3049,34 +3049,6 @@ var source = (() => {
   init_buffer();
   var import_types = __toESM(require_lib(), 1);
 
-  // src/Kavita/utils/StateUtil.ts
-  init_buffer();
-  var State = class {
-    constructor(form, persistKey, value) {
-      this.form = form;
-      this.persistKey = persistKey;
-      this._value = value;
-    }
-    _value;
-    get value() {
-      return this._value;
-    }
-    /**
-     * Returns selector for binding to form elements
-     */
-    get selector() {
-      return Application.Selector(this, "updateValue");
-    }
-    /**
-     * Updates state value, persists it, and refreshes the form
-     */
-    async updateValue(value) {
-      this._value = value;
-      Application.setState(value, this.persistKey);
-      this.form.reloadForm();
-    }
-  };
-
   // src/Kavita/settings.ts
   init_buffer();
   function getKavitaUrl() {
@@ -3108,6 +3080,34 @@ var source = (() => {
     return enableRecursiveSearch;
   }
 
+  // src/Kavita/utils/StateUtil.ts
+  init_buffer();
+  var State = class {
+    constructor(form, persistKey, value) {
+      this.form = form;
+      this.persistKey = persistKey;
+      this._value = value;
+    }
+    _value;
+    get value() {
+      return this._value;
+    }
+    /**
+     * Returns selector for binding to form elements
+     */
+    get selector() {
+      return Application.Selector(this, "updateValue");
+    }
+    /**
+     * Updates state value, persists it, and refreshes the form
+     */
+    async updateValue(value) {
+      this._value = value;
+      Application.setState(value, this.persistKey);
+      this.form.reloadForm();
+    }
+  };
+
   // src/Kavita/forms/SettingsForm.ts
   var SettingsForm = class extends import_types.Form {
     getSections() {
@@ -3122,10 +3122,10 @@ var source = (() => {
     }
   };
   var ServerSettingsForm = class extends import_types.Form {
-    url = State;
-    apikey = State;
-    pageSize = State;
-    enableRecursiveSearch = State;
+    url;
+    apikey;
+    pageSize;
+    enableRecursiveSearch;
     constructor() {
       super();
       this.url = new State(this, "kavita_url", getKavitaUrl());
@@ -3156,8 +3156,7 @@ var source = (() => {
           (0, import_types.InputRow)("pageSize", {
             title: "Page Size",
             value: this.pageSize.value,
-            onValueChange: this.pageSize.selector,
-            keyboardType: "numeric"
+            onValueChange: this.pageSize.selector
           })
         ]),
         (0, import_types.Section)("Search", [
@@ -3401,7 +3400,7 @@ var source = (() => {
       const libraryResult = await fetchJSON(libraryRequest);
       for (const library of libraryResult) {
         if (library.type === 2) continue;
-        includeLibraryIds.push(library.id);
+        includeLibraryIds.push(library.id.toString());
       }
       const tagNames = ["genres", "people", "tags"];
       const tagSections = [];
@@ -3414,16 +3413,16 @@ var source = (() => {
         const result = await fetchJSON(request);
         const names = [];
         const tags = [];
-        result.forEach(async (item) => {
+        result.forEach((item) => {
           switch (tagName) {
             case "people":
               if (!names.includes(item.name)) {
                 names.push(item.name);
-                tags.push({ id: `${tagName}-${item.role}.${item.id}`, label: item.name });
+                tags.push({ id: `${tagName}-${item.role}.${item.id}`, title: item.name });
               }
               break;
             default:
-              tags.push({ id: `${tagName}-${item.id}`, label: item.title });
+              tags.push({ id: `${tagName}-${item.id}`, title: item.title });
           }
         });
         tagSections[tagName] = {
@@ -3482,11 +3481,11 @@ var source = (() => {
       const kavitaURL = getKavitaUrl();
       const pageSize = +getKavitaPageSize();
       const enableRecursiveSearch = getKavitaEnableRecursiveSearch();
-      const page = metadata?.page ?? 0;
+      const page = metadata?.offset ?? 0;
       const titleSearchIds = [];
       const tagSearchTiles = [];
       const titleSearchTiles = [];
-      let result;
+      let result = [];
       if (typeof query.title === "string" && query.title !== "") {
         const titleRequest = {
           url: `${kavitaURL}/Search/search`,
@@ -3498,7 +3497,7 @@ var source = (() => {
           titleSearchIds.push(manga.seriesId);
           titleSearchTiles.push({
             title: manga.name,
-            image: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
+            imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
             mangaId: `${manga.seriesId}`,
             subtitle: void 0
           });
@@ -3529,7 +3528,7 @@ var source = (() => {
                   titleSearchIds.push(manga.id);
                   titleSearchTiles.push({
                     title: manga.name,
-                    image: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
                     mangaId: `${manga.id}`,
                     subtitle: void 0
                   });
@@ -3539,13 +3538,13 @@ var source = (() => {
           }
         }
       }
-      if (typeof query.includedTags !== "undefined") {
+      if (query.filters.length > 0) {
         const body = {};
         const peopleTags = [];
-        query.includedTags.forEach(async (tag) => {
+        query.filters.forEach(async (tag) => {
           switch (tag.id.split("-")[0]) {
             case "people":
-              peopleTags.push(tag.label);
+              peopleTags.push(tag.id);
               break;
             default:
               body[tag.id.split("-")[0] ?? ""] = body[tag.id.split("-")[0] ?? ""] ?? [];
@@ -3572,18 +3571,17 @@ var source = (() => {
         for (const manga of tagResult) {
           tagSearchTiles.push({
             title: manga.name,
-            image: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+            imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
             mangaId: `${manga.id}`,
             subtitle: void 0
           });
         }
       }
-      result = tagSearchTiles.length > 0 && titleSearchTiles.length > 0 ? tagSearchTiles.filter((value) => titleSearchTiles.some((target) => target.image === value.image)) : titleSearchTiles.concat(tagSearchTiles);
+      result = tagSearchTiles.length > 0 && titleSearchTiles.length > 0 ? tagSearchTiles.filter((value) => titleSearchTiles.some((target) => target.imageUrl === value.imageUrl)) : titleSearchTiles.concat(tagSearchTiles);
       result = result.slice(page * pageSize, (page + 1) * pageSize);
-      metadata = result.length === 0 ? void 0 : { page: page + 1 };
       return {
-        results: result,
-        metadata
+        items: result,
+        metadata: { offset: page + 1, collectedIds: metadata.collectedIds }
       };
     }
   };
