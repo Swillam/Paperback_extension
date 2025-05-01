@@ -1855,7 +1855,7 @@ var source = (() => {
       exports.InputRow = InputRow2;
       exports.ToggleRow = ToggleRow2;
       exports.SelectRow = SelectRow;
-      exports.ButtonRow = ButtonRow2;
+      exports.ButtonRow = ButtonRow;
       exports.WebViewRow = WebViewRow;
       exports.NavigationRow = NavigationRow2;
       exports.OAuthButtonRow = OAuthButtonRow;
@@ -1872,7 +1872,7 @@ var source = (() => {
       function SelectRow(id, props) {
         return { ...props, id, type: "selectRow", isHidden: props.isHidden ?? false };
       }
-      function ButtonRow2(id, props) {
+      function ButtonRow(id, props) {
         return { ...props, id, type: "buttonRow", isHidden: props.isHidden ?? false };
       }
       function WebViewRow(id, props) {
@@ -2299,7 +2299,7 @@ var source = (() => {
         }
         return components;
       }
-      var URL4 = class {
+      var URL2 = class {
         protocol;
         hostname;
         path;
@@ -2493,7 +2493,7 @@ var source = (() => {
           return this;
         }
       };
-      exports.URL = URL4;
+      exports.URL = URL2;
     }
   });
 
@@ -2799,14 +2799,14 @@ var source = (() => {
       init_buffer();
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.DiscoverSectionType = void 0;
-      var DiscoverSectionType3;
-      (function(DiscoverSectionType4) {
-        DiscoverSectionType4[DiscoverSectionType4["featured"] = 0] = "featured";
-        DiscoverSectionType4[DiscoverSectionType4["simpleCarousel"] = 1] = "simpleCarousel";
-        DiscoverSectionType4[DiscoverSectionType4["prominentCarousel"] = 2] = "prominentCarousel";
-        DiscoverSectionType4[DiscoverSectionType4["chapterUpdates"] = 3] = "chapterUpdates";
-        DiscoverSectionType4[DiscoverSectionType4["genres"] = 4] = "genres";
-      })(DiscoverSectionType3 || (exports.DiscoverSectionType = DiscoverSectionType3 = {}));
+      var DiscoverSectionType2;
+      (function(DiscoverSectionType3) {
+        DiscoverSectionType3[DiscoverSectionType3["featured"] = 0] = "featured";
+        DiscoverSectionType3[DiscoverSectionType3["simpleCarousel"] = 1] = "simpleCarousel";
+        DiscoverSectionType3[DiscoverSectionType3["prominentCarousel"] = 2] = "prominentCarousel";
+        DiscoverSectionType3[DiscoverSectionType3["chapterUpdates"] = 3] = "chapterUpdates";
+        DiscoverSectionType3[DiscoverSectionType3["genres"] = 4] = "genres";
+      })(DiscoverSectionType2 || (exports.DiscoverSectionType = DiscoverSectionType2 = {}));
     }
   });
 
@@ -2933,12 +2933,12 @@ var source = (() => {
         SourceIntents2[SourceIntents2["SETTINGS_UI"] = 32] = "SETTINGS_UI";
         SourceIntents2[SourceIntents2["MANGA_SEARCH"] = 64] = "MANGA_SEARCH";
       })(SourceIntents || (exports.SourceIntents = SourceIntents = {}));
-      var ContentRating4;
-      (function(ContentRating5) {
-        ContentRating5["EVERYONE"] = "SAFE";
-        ContentRating5["MATURE"] = "MATURE";
-        ContentRating5["ADULT"] = "ADULT";
-      })(ContentRating4 || (exports.ContentRating = ContentRating4 = {}));
+      var ContentRating2;
+      (function(ContentRating3) {
+        ContentRating3["EVERYONE"] = "SAFE";
+        ContentRating3["MATURE"] = "MATURE";
+        ContentRating3["ADULT"] = "ADULT";
+      })(ContentRating2 || (exports.ContentRating = ContentRating2 = {}));
     }
   });
 
@@ -3073,7 +3073,9 @@ var source = (() => {
     return pageSize;
   }
   function getKavitaEnableRecursiveSearch() {
-    const enableRecursiveSearch = Application.getState("kavita_enable_recursive_search");
+    const enableRecursiveSearch = Application.getState(
+      "kavita_enable_recursive_search"
+    );
     if (enableRecursiveSearch === void 0) {
       return false;
     }
@@ -3129,9 +3131,21 @@ var source = (() => {
     constructor() {
       super();
       this.url = new State(this, "kavita_url", getKavitaUrl());
-      this.apikey = new State(this, "kavita_apikey", getKavitaApiKey());
-      this.pageSize = new State(this, "kavita_page_size", getKavitaPageSize());
-      this.enableRecursiveSearch = new State(this, "kavita_enable_recursive_search", getKavitaEnableRecursiveSearch());
+      this.apikey = new State(
+        this,
+        "kavita_apikey",
+        getKavitaApiKey()
+      );
+      this.pageSize = new State(
+        this,
+        "kavita_page_size",
+        getKavitaPageSize()
+      );
+      this.enableRecursiveSearch = new State(
+        this,
+        "kavita_enable_recursive_search",
+        getKavitaEnableRecursiveSearch()
+      );
     }
     getSections() {
       return [
@@ -3171,9 +3185,45 @@ var source = (() => {
     }
   };
 
-  // src/Kavita/providers/MangaProvider.ts
+  // src/Kavita/KavitaInterceptor.ts
   init_buffer();
   var import_types2 = __toESM(require_lib(), 1);
+  var KavitaInterceptor = class extends import_types2.PaperbackInterceptor {
+    authorization = "";
+    async isServerAvailable() {
+      await this.getAuthorizationString();
+      return this.authorization.startsWith("Bearer ");
+    }
+    async getAuthorizationString() {
+      if (this.authorization === "") {
+        this.authorization = "Bearer " + getKavitaApiKey();
+      }
+      return this.authorization;
+    }
+    clearAuthorizationString() {
+      this.authorization = "";
+    }
+    async interceptRequest(request) {
+      request.headers = {
+        ...request.headers,
+        "Content-Type": "application/json",
+        Authorization: await this.getAuthorizationString()
+      };
+      if (request.url.startsWith("FAKE*")) {
+        request.url = request.url.split("*REAL*").pop() ?? "";
+      }
+      return request;
+    }
+    async interceptResponse(request, response, data) {
+      void request;
+      void response;
+      return data;
+    }
+  };
+
+  // src/Kavita/providers/ChapterProvider.ts
+  init_buffer();
+  var import_types3 = __toESM(require_lib(), 1);
 
   // src/Kavita/utils/CommonUtils.ts
   init_buffer();
@@ -3210,81 +3260,12 @@ var source = (() => {
     return json;
   }
 
-  // src/Kavita/providers/MangaProvider.ts
-  var MangaProvider = class {
-    /**
-     * Retrieves detailed information for a specific manga
-     */
-    async getMangaDetails(mangaId) {
-      const kavitaAPI = getKavitaApiKey();
-      const kavitaURL = getKavitaUrl();
-      const seriesRequest = {
-        url: `${kavitaURL}/Series/${mangaId}`,
-        method: "GET"
-      };
-      const metadataRequest = {
-        url: `${kavitaURL}/Series/metadata`,
-        param: `?seriesId=${mangaId}`,
-        method: "GET"
-      };
-      const seriesResult = await fetchJSON(seriesRequest);
-      const metadataResult = await fetchJSON(metadataRequest);
-      const tagNames = ["genres", "tags"];
-      const tagSections = [];
-      for (const tagName of tagNames) {
-        const tags = [];
-        for (const tag of metadataResult[tagName]) {
-          tags.push({
-            id: `${tagName}-${tag.id}`,
-            title: tag.title
-          });
-        }
-        tagSections.push({
-          id: tagName,
-          title: tagName,
-          tags
-        });
-      }
-      let artists = [];
-      for (const penciller of metadataResult.pencillers) {
-        artists.push(penciller.name);
-      }
-      let authors = [];
-      for (const writer of metadataResult.writers) {
-        authors.push(writer.name);
-      }
-      return {
-        mangaId,
-        mangaInfo: {
-          primaryTitle: seriesResult.name,
-          secondaryTitles: [seriesResult.originalName, seriesResult.localizedName, seriesResult.sortName],
-          thumbnailUrl: `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`,
-          author: authors.join(", "),
-          artist: artists.join(", "),
-          synopsis: metadataResult.summary.replace(/<[^>]+>/g, ""),
-          status: KAVITA_PUBLICATION_STATUS[metadataResult.publicationStatus] ?? "Unknown",
-          tagGroups: tagSections,
-          contentRating: import_types2.ContentRating.EVERYONE,
-          shareUrl: `${kavitaURL}/title/${mangaId}`,
-          rating: seriesResult.userRating,
-          artworkUrls: (
-            /*artworkUrls.length > 0 ? artworkUrls :*/
-            void 0
-          )
-        }
-      };
-    }
-  };
-
   // src/Kavita/providers/ChapterProvider.ts
-  init_buffer();
-  var import_types3 = __toESM(require_lib(), 1);
   var ChapterProvider = class {
     /**
      * Fetches chapters for a manga, optionally updating metadata
      */
-    async getChapters(sourceManga, skipMetadataUpdate = false) {
-      const kavitaAPI = getKavitaApiKey();
+    async getChapters(sourceManga) {
       const kavitaUrl = getKavitaUrl();
       const mangaId = sourceManga.mangaId;
       const request = {
@@ -3300,16 +3281,18 @@ var source = (() => {
           const name = chapter.number === chapter.range ? chapter.titleName ?? "" : `${chapter.range.replace(`${chapter.number}-`, "")}${chapter.titleName ? ` - ${chapter.titleName}` : ""}`;
           const title = chapter.range.endsWith(".epub") ? chapter.range.slice(0, -5) : chapter.range.slice(0, -4);
           const progress = chapter.pagesRead === 0 ? "" : chapter.pages === chapter.pagesRead ? "\xB7 Read" : `\xB7 Reading ${chapter.pagesRead} page`;
-          const time = new Date(chapter.releaseDate === "0001-01-01T00:00:00" ? chapter.created : chapter.releaseDate);
+          const time = new Date(
+            chapter.releaseDate === "0001-01-01T00:00:00" ? chapter.created : chapter.releaseDate
+          );
           const item = {
-            id: chapter.id,
+            chapterId: `${chapter.id}`,
             sourceManga,
             title: chapter.isSpecial ? title : name,
             chapNum: chapter.number === "-100000" ? 1 : chapter.isSpecial ? j++ : parseFloat(chapter.number),
             // chapter.number is 0 when it's a special
             volume: chapter.isSpecial ? 0 : volume.name === "-100000" ? 0 : parseFloat(volume.name),
             // assign both special and chapters w/o volumes w/ volume 0 as it's hidden by paperback,
-            langCode: chapter.language,
+            langCode: chapter.language ?? "en",
             version: `${chapter.isSpecial ? "Specials \xB7 " : ""}${chapter.pages} pages ${progress}`,
             publishDate: time,
             sortingIndex: i
@@ -3337,7 +3320,9 @@ var source = (() => {
       const result = await fetchJSON(request);
       const pages = [];
       for (let i = 0; i < result.pages; i++) {
-        pages.push(`FAKE*/${i}?*REAL*${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`);
+        pages.push(
+          `FAKE*/${i}?*REAL*${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`
+        );
       }
       const chapterDetails = {
         id: chapterId,
@@ -3384,6 +3369,313 @@ var source = (() => {
     }
   };
 
+  // src/Kavita/providers/DiscoverProvider.ts
+  init_buffer();
+  var import_types4 = __toESM(require_lib(), 1);
+  var DiscoverProvider = class {
+    /**
+     * Returns configured discover sections based on user settings
+     */
+    async getDiscoverSections() {
+      const kavitaURL = getKavitaUrl();
+      const sections = [
+        {
+          id: "ondeck",
+          title: "On Deck",
+          type: import_types4.DiscoverSectionType.featured
+        },
+        {
+          id: "latest_updates",
+          title: "Latest Updates",
+          type: import_types4.DiscoverSectionType.chapterUpdates
+        },
+        {
+          id: "recently_added",
+          title: "Recently Added",
+          type: import_types4.DiscoverSectionType.simpleCarousel
+        },
+        {
+          id: "tag_sections",
+          title: "Tag Sections",
+          type: import_types4.DiscoverSectionType.genres
+        }
+      ];
+      const request = {
+        url: `${kavitaURL}/Library/libraries`,
+        method: "GET"
+      };
+      const result = await fetchJSON(request);
+      for (const library of result) {
+        if (library.type === 2) {
+          continue;
+        }
+        sections.push({
+          id: `${library.id}`,
+          title: library.name,
+          type: import_types4.DiscoverSectionType.prominentCarousel
+        });
+      }
+      return sections;
+    }
+    /**
+     * Creates tag sections from available manga tags
+     */
+    getTagSections() {
+      const sections = [];
+      const allTags = ["genres", "people", "tags"];
+      for (const tag of allTags) {
+        sections.push({
+          id: tag,
+          title: tag.charAt(0).toUpperCase() + tag.slice(1),
+          type: import_types4.DiscoverSectionType.genres
+        });
+      }
+      return sections;
+    }
+    /**
+     * Gets items for tag-based discover sections
+     */
+    async getTags(section) {
+      const sections = {};
+      const allTags = ["genres", "people", "tags"];
+      for (const tag of allTags) {
+        if (sections[tag] == null) {
+          sections[tag] = {
+            id: tag,
+            title: tag.charAt(0).toUpperCase() + tag.slice(1),
+            tags: []
+          };
+        }
+        const request = {
+          url: `${getKavitaUrl()}/Metadata/${tag}`,
+          method: "GET"
+        };
+        const json = await fetchJSON(request);
+        if (json === void 0) {
+          throw new Error(
+            `Failed to create results for ${section.title}`
+          );
+        }
+        sections[tag].tags = [...sections[tag]?.tags ?? [], ...json];
+      }
+      return {
+        items: sections[section.id]?.tags.map((x) => ({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            filters: [
+              {
+                id: `tags-${section.id}`,
+                value: { [x.id]: "included" }
+              }
+            ]
+          },
+          name: x.title
+        })) ?? [],
+        metadata: void 0
+      };
+    }
+    /**
+     * Fetches content for a specific discover section
+     */
+    async getDiscoverSectionItems(section, metadata) {
+      const sectionId = section.id;
+      if (sectionId === "ondeck") {
+        return this.getMangaListDiscoverSectionItems(section);
+      }
+      if (sectionId === "latest_updates") {
+        return this.getLatestUpdatesDiscoverSectionItems();
+      }
+      if (sectionId === "recently_added") {
+        return this.getRecentlyAddedDiscoverSectionItems(metadata);
+      }
+      if (sectionId === "tag_sections") {
+        return this.getTags(section);
+      }
+      return this.getLibrarySection(section);
+    }
+    /**
+     * Fetches content for a specific library section
+     */
+    async getLibrarySection(section) {
+      const kavitaURL = getKavitaUrl();
+      const pageSize = getKavitaPageSize();
+      const request = {
+        url: `${kavitaURL}/Series/all-v2?libraryId=${section.id}&PageNumber=1&PageSize=${pageSize}`,
+        method: "GET"
+      };
+      const json = await fetchJSON(request);
+      if (json === void 0) {
+        throw new Error(`Failed to create results for ${section.title}`);
+      }
+      return {
+        items: json.map((x) => ({
+          type: "prominentCarouselItem",
+          imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
+          mangaId: `${x.id}`,
+          title: x.name,
+          supertitle: void 0,
+          metadata: void 0
+        })),
+        metadata: void 0
+      };
+    }
+    async getMangaListDiscoverSectionItems(section) {
+      const kavitaURL = getKavitaUrl();
+      const pageSize = getKavitaPageSize();
+      const request = {
+        url: `${kavitaURL}/Series/on-deck?PageNumber=1&PageSize=${pageSize}`,
+        method: "POST"
+      };
+      const json = await fetchJSON(request);
+      if (json === void 0) {
+        throw new Error(`Failed to create results for ${section.title}`);
+      }
+      return {
+        items: json.map((x) => ({
+          type: "featuredCarouselItem",
+          imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
+          mangaId: `${x.id}`,
+          title: x.name,
+          supertitle: void 0,
+          metadata: void 0
+        })),
+        metadata: void 0
+      };
+    }
+    /**
+     * Fetches latest chapter updates for the updates section
+     */
+    async getLatestUpdatesDiscoverSectionItems() {
+      const kavitaURL = getKavitaUrl();
+      const chapterRequest = {
+        url: `${kavitaURL}/Series/recently-updated-series`,
+        method: "POST"
+      };
+      const series = await fetchJSON(chapterRequest);
+      const nextMetadata = void 0;
+      const items = [];
+      for (const serie of series) {
+        const mangaId = serie.seriesId;
+        const image = `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${getKavitaApiKey()}`;
+        const title = serie.seriesName;
+        const subtitle = serie.title;
+        items.push({
+          chapterId: `${serie.chapterId}`,
+          mangaId: `${mangaId}`,
+          title,
+          subtitle,
+          imageUrl: image,
+          publishDate: new Date(serie.created),
+          type: "chapterUpdatesCarouselItem"
+        });
+      }
+      return {
+        items,
+        metadata: nextMetadata
+      };
+    }
+    /**
+     * Fetches recently added manga for display
+     */
+    async getRecentlyAddedDiscoverSectionItems(metadata) {
+      const kavitaURL = getKavitaUrl();
+      const kavitaAPI = getKavitaApiKey();
+      const pageSize = getKavitaPageSize();
+      const offset = (metadata?.offset ?? 0) + 1;
+      const collectedIds = metadata?.collectedIds ?? [];
+      const request = {
+        url: `${kavitaURL}/Series/recently-added-v2?PageNumber=1&PageSize=${pageSize}`,
+        method: "POST"
+      };
+      const json = await fetchJSON(request);
+      const items = [];
+      for (const manga of json) {
+        const mangaId = manga.id;
+        const title = manga.name;
+        const image = `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`;
+        items.push({
+          mangaId: `${mangaId}`,
+          title,
+          imageUrl: image,
+          type: "simpleCarouselItem"
+        });
+      }
+      const nextMetadata = items.length < 100 ? void 0 : { offset, collectedIds };
+      return {
+        items,
+        metadata: nextMetadata
+      };
+    }
+  };
+
+  // src/Kavita/providers/MangaProvider.ts
+  init_buffer();
+  var import_types5 = __toESM(require_lib(), 1);
+  var MangaProvider = class {
+    /**
+     * Retrieves detailed information for a specific manga
+     */
+    async getMangaDetails(mangaId) {
+      const kavitaAPI = getKavitaApiKey();
+      const kavitaURL = getKavitaUrl();
+      const seriesRequest = {
+        url: `${kavitaURL}/Series/${mangaId}`,
+        method: "GET"
+      };
+      const metadataRequest = {
+        url: `${kavitaURL}/Series/metadata?seriesId=${mangaId}`,
+        method: "GET"
+      };
+      const seriesResult = await fetchJSON(seriesRequest);
+      const metadataResult = await fetchJSON(metadataRequest);
+      const seriesMetadata = metadataResult.seriesMetadata;
+      const tagSections = [];
+      tagSections.push({
+        id: "genres",
+        title: "genres",
+        tags: seriesMetadata.genres
+      });
+      tagSections.push({
+        id: "tags",
+        title: "tags",
+        tags: seriesMetadata.tags
+      });
+      const artists = [];
+      for (const penciller of seriesMetadata.pencillers) {
+        artists.push(penciller.name);
+      }
+      const authors = [];
+      for (const writer of seriesMetadata.writers) {
+        authors.push(writer.name);
+      }
+      return {
+        mangaId,
+        mangaInfo: {
+          primaryTitle: seriesResult.name,
+          secondaryTitles: [
+            seriesResult.originalName,
+            seriesResult.localizedName,
+            seriesResult.sortName
+          ],
+          thumbnailUrl: `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`,
+          author: authors.join(", "),
+          artist: artists.join(", "),
+          synopsis: seriesMetadata.summary.replace(/<[^>]+>/g, ""),
+          status: KAVITA_PUBLICATION_STATUS[seriesMetadata.publicationStatus] ?? "Unknown",
+          tagGroups: tagSections,
+          contentRating: import_types5.ContentRating.EVERYONE,
+          shareUrl: `${kavitaURL}/title/${mangaId}`,
+          rating: seriesResult.userRating,
+          artworkUrls: (
+            /*artworkUrls.length > 0 ? artworkUrls :*/
+            void 0
+          )
+        }
+      };
+    }
+  };
+
   // src/Kavita/providers/SearchProvider.ts
   init_buffer();
   var SearchProvider = class {
@@ -3416,22 +3708,28 @@ var source = (() => {
         result.forEach((item) => {
           switch (tagName) {
             case "people":
-              if (!names.includes(item.name)) {
-                names.push(item.name);
-                tags.push({ id: `${tagName}-${item.role}.${item.id}`, title: item.name });
+              if (!names.includes(item.title)) {
+                names.push(item.title);
+                tags.push({
+                  id: `${tagName}-${item.id}`,
+                  title: item.title
+                });
               }
               break;
             default:
-              tags.push({ id: `${tagName}-${item.id}`, title: item.title });
+              tags.push({
+                id: `${tagName}-${item.id}`,
+                title: item.title
+              });
           }
         });
-        tagSections[tagName] = {
+        tagSections.push({
           id: tagName,
-          label: tagName,
+          title: tagName,
           tags
-        };
+        });
       }
-      return tagNames.map((tag) => tagSections[tag]);
+      return tagSections;
     }
     /**
      * Builds search filter UI components
@@ -3494,7 +3792,7 @@ var source = (() => {
         };
         const titleResult = await fetchJSON(titleRequest);
         for (const manga of titleResult.series) {
-          titleSearchIds.push(manga.seriesId);
+          titleSearchIds.push(`${manga.seriesId}`);
           titleSearchTiles.push({
             title: manga.name,
             imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
@@ -3503,29 +3801,39 @@ var source = (() => {
           });
         }
         if (enableRecursiveSearch) {
-          const tagNames = ["persons", "genres", "tags"];
+          const tagNames = [
+            "persons",
+            "genres",
+            "tags"
+          ];
           for (const tagName of tagNames) {
             for (const item of titleResult[tagName]) {
               let titleTagRequest;
               switch (tagName) {
                 case "persons":
                   titleTagRequest = {
-                    url: `${kavitaURL}/Series/all`,
-                    data: JSON.stringify({ [KAVITA_PERSON_ROLES[item.role]]: [item.id] }),
+                    url: `${kavitaURL}/Series/all-v2`,
+                    body: JSON.stringify({
+                      [KAVITA_PERSON_ROLES[item.malId]]: [item.id]
+                    }),
                     method: "POST"
                   };
                   break;
                 default:
                   titleTagRequest = {
-                    url: `${kavitaURL}/Series/all`,
-                    data: JSON.stringify({ [tagName]: [item.id] }),
+                    url: `${kavitaURL}/Series/all-v2`,
+                    body: JSON.stringify({
+                      [tagName]: [item.id]
+                    }),
                     method: "POST"
                   };
               }
-              const titleTagResult = await fetchJSON(titleTagRequest);
+              const titleTagResult = await fetchJSON(
+                titleTagRequest
+              );
               for (const manga of titleTagResult) {
-                if (!titleSearchIds.includes(manga.id)) {
-                  titleSearchIds.push(manga.id);
+                if (!titleSearchIds.includes(`${manga.id}`)) {
+                  titleSearchIds.push(`${manga.id}`);
                   titleSearchTiles.push({
                     title: manga.name,
                     imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
@@ -3538,347 +3846,15 @@ var source = (() => {
           }
         }
       }
-      if (query.filters.length > 0) {
-        const body = {};
-        const peopleTags = [];
-        query.filters.forEach(async (tag) => {
-          switch (tag.id.split("-")[0]) {
-            case "people":
-              peopleTags.push(tag.id);
-              break;
-            default:
-              body[tag.id.split("-")[0] ?? ""] = body[tag.id.split("-")[0] ?? ""] ?? [];
-              body[tag.id.split("-")[0] ?? ""].push(parseInt(tag.id.split("-")[1] ?? "0"));
-          }
-        });
-        const peopleRequest = {
-          url: `${kavitaURL}/Metadata/people`,
-          method: "GET"
-        };
-        const peopleResult = await fetchJSON(peopleRequest);
-        for (const people of peopleResult) {
-          if (peopleTags.includes(people.name)) {
-            body[KAVITA_PERSON_ROLES[people.role]] = body[KAVITA_PERSON_ROLES[people.role]] ?? [];
-            body[KAVITA_PERSON_ROLES[people.role]].push(people.id);
-          }
-        }
-        const tagRequst = {
-          url: `${kavitaURL}/Series/all`,
-          data: JSON.stringify(body),
-          method: "POST"
-        };
-        const tagResult = await fetchJSON(tagRequst);
-        for (const manga of tagResult) {
-          tagSearchTiles.push({
-            title: manga.name,
-            imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
-            mangaId: `${manga.id}`,
-            subtitle: void 0
-          });
-        }
-      }
-      result = tagSearchTiles.length > 0 && titleSearchTiles.length > 0 ? tagSearchTiles.filter((value) => titleSearchTiles.some((target) => target.imageUrl === value.imageUrl)) : titleSearchTiles.concat(tagSearchTiles);
+      result = tagSearchTiles.length > 0 && titleSearchTiles.length > 0 ? tagSearchTiles.filter(
+        (value) => titleSearchTiles.some(
+          (target) => target.imageUrl === value.imageUrl
+        )
+      ) : titleSearchTiles.concat(tagSearchTiles);
       result = result.slice(page * pageSize, (page + 1) * pageSize);
       return {
         items: result,
         metadata: { offset: page + 1, collectedIds: metadata.collectedIds }
-      };
-    }
-  };
-
-  // src/Kavita/KavitaInterceptor.ts
-  init_buffer();
-  var import_types4 = __toESM(require_lib(), 1);
-  var KavitaInterceptor = class extends import_types4.PaperbackInterceptor {
-    authorization = "";
-    async isServerAvailable() {
-      await this.getAuthorizationString();
-      return this.authorization.startsWith("Bearer ");
-    }
-    async getAuthorizationString() {
-      if (this.authorization === "") {
-        this.authorization = "Bearer " + getKavitaApiKey();
-      }
-      return this.authorization;
-    }
-    clearAuthorizationString() {
-      this.authorization = "";
-    }
-    async interceptRequest(request) {
-      request.headers = {
-        ...request.headers,
-        "Content-Type": "application/json",
-        "Authorization": await this.getAuthorizationString()
-      };
-      if (request.url.startsWith("FAKE*")) {
-        request.url = request.url.split("*REAL*").pop() ?? "";
-      }
-      return request;
-    }
-    async interceptResponse(request, response, data) {
-      void request;
-      void response;
-      return data;
-    }
-  };
-
-  // src/Kavita/providers/DiscoverProvider.ts
-  init_buffer();
-  var import_types5 = __toESM(require_lib(), 1);
-  var DiscoverProvider = class {
-    /**
-     * Returns configured discover sections based on user settings
-     */
-    async getDiscoverSections() {
-      const kavitaURL = getKavitaUrl();
-      const sections = [
-        {
-          id: "ondeck",
-          title: "On Deck",
-          type: import_types5.DiscoverSectionType.featured
-        },
-        {
-          id: "latest_updates",
-          title: "Latest Updates",
-          type: import_types5.DiscoverSectionType.chapterUpdates
-        },
-        {
-          id: "recently_added",
-          title: "Recently Added",
-          type: import_types5.DiscoverSectionType.simpleCarousel
-        },
-        {
-          id: "tag_sections",
-          title: "Tag Sections",
-          type: import_types5.DiscoverSectionType.genres
-        }
-      ];
-      const request = {
-        url: `${kavitaURL}/Library/libraries`,
-        method: "GET"
-      };
-      const result = await fetchJSON(request);
-      for (const library of result) {
-        if (library.type === 2) {
-          continue;
-        }
-        sections.push({
-          id: `${library.id}`,
-          title: library.name,
-          type: import_types5.DiscoverSectionType.prominentCarousel
-        });
-      }
-      return sections;
-    }
-    /**
-     * Creates tag sections from available manga tags
-     */
-    getTagSections() {
-      const sections = [];
-      const allTags = [
-        "genres",
-        "people",
-        "tags"
-      ];
-      for (const tag of allTags) {
-        sections.push({
-          id: tag,
-          title: tag.charAt(0).toUpperCase() + tag.slice(1),
-          type: import_types5.DiscoverSectionType.genres
-        });
-      }
-      return sections;
-    }
-    /**
-     * Gets items for tag-based discover sections
-     */
-    async getTags(section) {
-      const sections = {};
-      const allTags = [
-        "genres",
-        "people",
-        "tags"
-      ];
-      for (const tag of allTags) {
-        if (sections[tag] == null) {
-          sections[tag] = {
-            id: tag,
-            title: tag.charAt(0).toUpperCase() + tag.slice(1),
-            tags: []
-          };
-        }
-        const request = {
-          url: `${getKavitaUrl()}/Metadata/${tag}`,
-          method: "GET"
-        };
-        const json = await fetchJSON(request);
-        if (json === void 0) {
-          throw new Error(
-            `Failed to create results for ${section.title}`
-          );
-        }
-        sections[tag].tags = [
-          ...sections[tag]?.tags ?? [],
-          ...json
-        ];
-      }
-      return {
-        items: sections[section.id]?.tags.map((x) => ({
-          type: "genresCarouselItem",
-          searchQuery: {
-            title: "",
-            filters: [
-              {
-                id: `tags-${section.id}`,
-                value: { [x.id]: "included" }
-              }
-            ]
-          },
-          name: x.title
-        })) ?? [],
-        metadata: void 0
-      };
-    }
-    /**
-     * Fetches content for a specific discover section
-     */
-    async getDiscoverSectionItems(section, metadata) {
-      const sectionId = section.id;
-      if (sectionId === "ondeck") {
-        return this.getMangaListDiscoverSectionItems(section);
-      }
-      if (sectionId === "latest_updates") {
-        return this.getLatestUpdatesDiscoverSectionItems(section, metadata);
-      }
-      if (sectionId === "recently_added") {
-        return this.getRecentlyAddedDiscoverSectionItems(section, metadata);
-      }
-      if (sectionId === "tag_sections") {
-        return this.getTags(section);
-      }
-      return this.getLibrarySection(section);
-    }
-    /**
-     * Fetches content for a specific library section
-     */
-    async getLibrarySection(section) {
-      const kavitaURL = getKavitaUrl();
-      const pageSize = getKavitaPageSize();
-      const request = {
-        url: `${kavitaURL}/Series/all-v2?libraryId=${section.id}&PageNumber=1&PageSize=${pageSize}`,
-        method: "GET"
-      };
-      const json = await fetchJSON(request);
-      if (json === void 0) {
-        throw new Error(
-          `Failed to create results for ${section.title}`
-        );
-      }
-      return {
-        items: json.map((x) => ({
-          type: "prominentCarouselItem",
-          imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
-          mangaId: x.id,
-          title: x.name,
-          supertitle: void 0,
-          metadata: void 0
-        })),
-        metadata: void 0
-      };
-    }
-    async getMangaListDiscoverSectionItems(section) {
-      const kavitaURL = getKavitaUrl();
-      const pageSize = getKavitaPageSize();
-      const request = {
-        url: `${kavitaURL}/Series/on-deck?PageNumber=1&PageSize=${pageSize}`,
-        method: "POST"
-      };
-      const json = await fetchJSON(request);
-      if (json === void 0) {
-        throw new Error(
-          `Failed to create results for ${section.title}`
-        );
-      }
-      return {
-        items: json.map((x) => ({
-          type: "featuredCarouselItem",
-          imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
-          mangaId: x.id,
-          title: x.name,
-          supertitle: void 0,
-          metadata: void 0
-        })),
-        metadata: void 0
-      };
-    }
-    /**
-     * Fetches latest chapter updates for the updates section
-     */
-    async getLatestUpdatesDiscoverSectionItems(section, metadata) {
-      const kavitaURL = getKavitaUrl();
-      const chapterRequest = {
-        url: `${kavitaURL}/Series/recently-updated-series`,
-        method: "POST"
-      };
-      const series = await fetchJSON(chapterRequest);
-      const nextMetadata = void 0;
-      const items = [];
-      for (const serie of series) {
-        const mangaId = serie.seriesId;
-        const request = {
-          url: `${kavitaURL}/Series/${mangaId}`,
-          method: "GET"
-        };
-        const image = `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${getKavitaApiKey()}`;
-        const title = serie.seriesName;
-        const subtitle = serie.title;
-        items.push({
-          chapterId: serie.chapterId,
-          mangaId,
-          title,
-          subtitle,
-          imageUrl: image,
-          publishDate: new Date(serie.created),
-          type: "chapterUpdatesCarouselItem"
-        });
-      }
-      return {
-        items,
-        metadata: nextMetadata
-      };
-    }
-    /**
-     * Fetches recently added manga for display
-     */
-    async getRecentlyAddedDiscoverSectionItems(section, metadata) {
-      const kavitaURL = getKavitaUrl();
-      const kavitaAPI = getKavitaApiKey();
-      const pageSize = getKavitaPageSize();
-      const offset = (metadata?.offset ?? 0) + 1;
-      const collectedIds = metadata?.collectedIds ?? [];
-      const request = {
-        url: `${kavitaURL}/Series/recently-added-v2?PageNumber=1&PageSize=${pageSize}`,
-        method: "POST"
-      };
-      const json = await fetchJSON(request);
-      const items = [];
-      for (const manga of json) {
-        const mangaId = manga.id;
-        const title = manga.name;
-        const image = `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`;
-        const subtitle = manga.lastScanned;
-        items.push({
-          mangaId,
-          title,
-          imageUrl: image,
-          subtitle,
-          type: "simpleCarouselItem"
-        });
-      }
-      const nextMetadata = items.length < 100 ? void 0 : { offset, collectedIds };
-      return {
-        items,
-        metadata: nextMetadata
       };
     }
   };
