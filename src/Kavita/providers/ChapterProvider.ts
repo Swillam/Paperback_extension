@@ -107,7 +107,7 @@ export class ChapterProvider {
         const pages: string[] = [];
         for (let i = 0; i < result.pages; i++) {
             pages.push(
-                `FAKE*/${i}?*REAL*${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`,
+                `${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`,
             );
         }
 
