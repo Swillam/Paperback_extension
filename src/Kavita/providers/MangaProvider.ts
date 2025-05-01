@@ -24,10 +24,8 @@ export class MangaProvider {
 
         const seriesResult =
             await fetchJSON<Kavita.SerieResponse>(seriesRequest);
-        const metadataResult =
-            await fetchJSON<Kavita.SerieMetadataResponse>(metadataRequest);
         const seriesMetadata =
-            metadataResult.seriesMetadata as Kavita.SerieMetadata;
+            await fetchJSON<Kavita.SerieMetadata>(metadataRequest);
 
         const tagSections: TagSection[] = [];
 

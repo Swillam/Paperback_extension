@@ -341,10 +341,6 @@ declare namespace Kavita {
         secondaryColor: string;
     }
 
-    interface SerieMetadataResponse {
-        seriesMetadata: SeriesMetadata;
-    }
-
     interface SerieMetadata {
         id: number;
         summary: string;

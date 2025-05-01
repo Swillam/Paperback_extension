@@ -286,6 +286,16 @@ export class DiscoverProvider {
 
         const request = {
             url: `${kavitaURL}/Series/recently-added-v2?PageNumber=1&PageSize=${pageSize}`,
+            body: JSON.stringify({
+                id: 0,
+                name: "all",
+                combination: 0,
+                sortOptions: {
+                    sortField: 1,
+                    isAscending: true,
+                },
+                limitTo: 0,
+            }),
             method: "POST",
         };
 
