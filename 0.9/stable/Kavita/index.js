@@ -3261,9 +3261,6 @@ var source = (() => {
         "Content-Type": "application/json",
         Authorization: await this.getAuthorizationString()
       };
-      if (request.url.startsWith("FAKE*")) {
-        request.url = request.url.split("*REAL*").pop() ?? "";
-      }
       return request;
     }
     async interceptResponse(request, response, data) {
@@ -3336,7 +3333,7 @@ var source = (() => {
       const pages = [];
       for (let i = 0; i < result.pages; i++) {
         pages.push(
-          `FAKE*/${i}?*REAL*${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`
+          `${kavitaURL}/Reader/image?chapterId=${chapterId}&page=${i}&apiKey=${kavitaAPI}&extractPdf=true`
         );
       }
       const chapterDetails = {
