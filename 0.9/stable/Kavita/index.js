@@ -3188,42 +3188,6 @@ var source = (() => {
   // src/Kavita/KavitaInterceptor.ts
   init_buffer();
   var import_types2 = __toESM(require_lib(), 1);
-  var KavitaInterceptor = class extends import_types2.PaperbackInterceptor {
-    authorization = "";
-    async isServerAvailable() {
-      await this.getAuthorizationString();
-      return this.authorization.startsWith("Bearer ");
-    }
-    async getAuthorizationString() {
-      if (this.authorization === "") {
-        this.authorization = "Bearer " + getKavitaApiKey();
-      }
-      return this.authorization;
-    }
-    clearAuthorizationString() {
-      this.authorization = "";
-    }
-    async interceptRequest(request) {
-      request.headers = {
-        ...request.headers,
-        "Content-Type": "application/json",
-        Authorization: await this.getAuthorizationString()
-      };
-      if (request.url.startsWith("FAKE*")) {
-        request.url = request.url.split("*REAL*").pop() ?? "";
-      }
-      return request;
-    }
-    async interceptResponse(request, response, data) {
-      void request;
-      void response;
-      return data;
-    }
-  };
-
-  // src/Kavita/providers/ChapterProvider.ts
-  init_buffer();
-  var import_types3 = __toESM(require_lib(), 1);
 
   // src/Kavita/utils/CommonUtils.ts
   init_buffer();
@@ -3260,7 +3224,58 @@ var source = (() => {
     return json;
   }
 
+  // src/Kavita/KavitaInterceptor.ts
+  var KavitaInterceptor = class extends import_types2.PaperbackInterceptor {
+    authorization = "";
+    async isServerAvailable() {
+      await this.getAuthorizationString();
+      return this.authorization.startsWith("Bearer ");
+    }
+    async getAuthorizationString() {
+      if (this.authorization === "") {
+        const token = await this.getAuthorization();
+        this.authorization = token;
+      }
+      return this.authorization;
+    }
+    async getAuthorization() {
+      const kavitaAPI = getKavitaApiKey();
+      const kavitaURL = getKavitaUrl();
+      const request = {
+        url: `${kavitaURL}/Plugin/authenticate?apiKey=${kavitaAPI}&pluginName=Kavya`,
+        method: "POST"
+      };
+      const response = await fetchJSON(request);
+      const token = response.token;
+      return token ? `Bearer ${token}` : "";
+    }
+    clearAuthorizationString() {
+      this.authorization = "";
+    }
+    async interceptRequest(request) {
+      if (request.url.includes("/Plugin/authenticate")) {
+        return request;
+      }
+      request.headers = {
+        ...request.headers,
+        "Content-Type": "application/json",
+        Authorization: await this.getAuthorizationString()
+      };
+      if (request.url.startsWith("FAKE*")) {
+        request.url = request.url.split("*REAL*").pop() ?? "";
+      }
+      return request;
+    }
+    async interceptResponse(request, response, data) {
+      void request;
+      void response;
+      return data;
+    }
+  };
+
   // src/Kavita/providers/ChapterProvider.ts
+  init_buffer();
+  var import_types3 = __toESM(require_lib(), 1);
   var ChapterProvider = class {
     /**
      * Fetches chapters for a manga, optionally updating metadata
