@@ -1,15 +1,19 @@
 import {
     PagedResults,
+    Request,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
-    TagSection,
     Tag,
+    TagSection,
 } from "@paperback/types";
-
-import { fetchJSON } from "../utils/CommonUtils";
-import { getKavitaApiKey, getKavitaEnableRecursiveSearch, getKavitaPageSize, getKavitaUrl } from "../settings";
-import { KAVITA_PERSON_ROLES } from "../utils/CommonUtils";
+import {
+    getKavitaApiKey,
+    getKavitaEnableRecursiveSearch,
+    getKavitaPageSize,
+    getKavitaUrl,
+} from "../settings";
+import { fetchJSON, KAVITA_PERSON_ROLES } from "../utils/CommonUtils";
 
 /**
  * Handles manga search functionality and filters
@@ -19,57 +23,63 @@ export class SearchProvider {
      * Returns tag sections for manga search filters
      */
     async getSearchTags(): Promise<TagSection[]> {
-
         const kavitaURL = getKavitaUrl();
 
         const includeLibraryIds: string[] = [];
 
         const libraryRequest = {
             url: `${kavitaURL}/Library/libraries`,
-            method: 'GET',
+            method: "GET",
         };
 
-        const libraryResult = await fetchJSON<Kavita.AllLibraries>(libraryRequest);
+        const libraryResult =
+            await fetchJSON<Kavita.AllLibraries>(libraryRequest);
 
         for (const library of libraryResult) {
             if (library.type === 2) continue;
             includeLibraryIds.push(library.id.toString());
         }
 
-        const tagNames: string[] = ['genres', 'people', 'tags'];
-        const tagSections: any = [];
+        const tagNames: string[] = ["genres", "people", "tags"];
+        const tagSections: TagSection[] = [];
 
         for (const tagName of tagNames) {
             const request = {
                 url: `${kavitaURL}/Metadata/${tagName}`,
-                param: `?libraryIds=${includeLibraryIds.join(',')}`,
-                method: 'GET',
+                param: `?libraryIds=${includeLibraryIds.join(",")}`,
+                method: "GET",
             };
-            const result = await fetchJSON<any>(request);
+            const result = await fetchJSON<Kavita.Genre[]>(request);
             const names: string[] = [];
             const tags: Tag[] = [];
 
-            result.forEach((item: any) => {
+            result.forEach((item: Kavita.Genre) => {
                 switch (tagName) {
-                    case 'people':
-                        if (!names.includes(item.name)) {
-                            names.push(item.name);
-                            tags.push({id: `${tagName}-${item.role}.${item.id}`, title: item.name})
+                    case "people":
+                        if (!names.includes(item.title)) {
+                            names.push(item.title);
+                            tags.push({
+                                id: `${tagName}-${item.id}`,
+                                title: item.title,
+                            });
                         }
                         break;
                     default:
-                        tags.push({id: `${tagName}-${item.id}`, title: item.title})
+                        tags.push({
+                            id: `${tagName}-${item.id}`,
+                            title: item.title,
+                        });
                 }
             });
 
-            tagSections[tagName] ={
+            tagSections.push({
                 id: tagName,
-                label: tagName,
-                tags: tags
-            };
+                title: tagName,
+                tags: tags,
+            });
         }
 
-        return tagNames.map((tag) => tagSections[tag]);
+        return tagSections;
     }
 
     /**
@@ -137,60 +147,73 @@ export class SearchProvider {
 
         let result: SearchResultItem[] = [];
 
-        if (typeof query.title === 'string' && query.title !== '') {			
+        if (typeof query.title === "string" && query.title !== "") {
             const titleRequest = {
                 url: `${kavitaURL}/Search/search`,
                 param: `?queryString=${encodeURIComponent(query.title)}`,
-                method: 'GET'
+                method: "GET",
             };
 
             // We don't want to throw if the server is unavailable
-            const titleResult = await fetchJSON<any>(titleRequest);
+            const titleResult =
+                await fetchJSON<Kavita.SearchResponse>(titleRequest);
 
             for (const manga of titleResult.series) {
-
-                titleSearchIds.push(manga.seriesId);
+                titleSearchIds.push(`${manga.seriesId}`);
                 titleSearchTiles.push({
-                        title: manga.name,
-                        imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
-                        mangaId: `${manga.seriesId}`,
-                        subtitle: undefined
+                    title: manga.name,
+                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
+                    mangaId: `${manga.seriesId}`,
+                    subtitle: undefined,
                 });
             }
 
             if (enableRecursiveSearch) {
-                const tagNames: string[] = ['persons', 'genres', 'tags'];
+                const tagNames: (keyof Kavita.SearchResponse)[] = [
+                    "persons",
+                    "genres",
+                    "tags",
+                ];
 
                 for (const tagName of tagNames) {
                     for (const item of titleResult[tagName]) {
-                        let titleTagRequest: any;
+                        let titleTagRequest: Request;
                         switch (tagName) {
-                            case 'persons':
+                            case "persons":
                                 titleTagRequest = {
-                                    url: `${kavitaURL}/Series/all`,
-                                    data: JSON.stringify({[KAVITA_PERSON_ROLES[item.role]]: [item.id]}),
-                                    method: 'POST'
+                                    url: `${kavitaURL}/Series/all-v2`,
+                                    body: JSON.stringify({
+                                        [KAVITA_PERSON_ROLES[
+                                            (item as Kavita.Contributor).malId
+                                        ]]: [(item as Kavita.Contributor).id],
+                                    }),
+                                    method: "POST",
                                 };
                                 break;
                             default:
                                 titleTagRequest = {
-                                    url: `${kavitaURL}/Series/all`,
-                                    data: JSON.stringify({[tagName]: [item.id]}),
-                                    method: 'POST'
+                                    url: `${kavitaURL}/Series/all-v2`,
+                                    body: JSON.stringify({
+                                        [tagName]: [(item as Tag).id],
+                                    }),
+                                    method: "POST",
                                 };
                         }
 
-                        const titleTagResult = await fetchJSON<any>(titleTagRequest);
+                        const titleTagResult =
+                            await fetchJSON<Kavita.SerieResponse[]>(
+                                titleTagRequest,
+                            );
 
                         for (const manga of titleTagResult) {
-                            if (!titleSearchIds.includes(manga.id)) {
-                                titleSearchIds.push(manga.id);
+                            if (!titleSearchIds.includes(`${manga.id}`)) {
+                                titleSearchIds.push(`${manga.id}`);
                                 titleSearchTiles.push({
-                                        title: manga.name,
-                                        imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
-                                        mangaId: `${manga.id}`,
-                                        subtitle: undefined
-                                    });
+                                    title: manga.name,
+                                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                                    mangaId: `${manga.id}`,
+                                    subtitle: undefined,
+                                });
                             }
                         }
                     }
@@ -198,60 +221,20 @@ export class SearchProvider {
             }
         }
 
-        if (query.filters.length > 0) {
-            const body: any = {};
-            const peopleTags: string[] = [];
+        result =
+            tagSearchTiles.length > 0 && titleSearchTiles.length > 0
+                ? tagSearchTiles.filter((value) =>
+                      titleSearchTiles.some(
+                          (target) => target.imageUrl === value.imageUrl,
+                      ),
+                  )
+                : titleSearchTiles.concat(tagSearchTiles);
 
-            query.filters.forEach(async (tag) => {
-                switch (tag.id.split('-')[0]) {
-                    case 'people':
-                        peopleTags.push(tag.id);
-                        break;
-                    default:
-                        body[tag.id.split('-')[0] ?? ''] = body[tag.id.split('-')[0] ?? ''] ?? []
-                        body[tag.id.split('-')[0] ?? ''].push(parseInt(tag.id.split('-')[1] ?? '0'));
-                }
-            });
-
-            const peopleRequest = {
-                url: `${kavitaURL}/Metadata/people`,
-                method: 'GET'
-            };
-
-            const peopleResult = await fetchJSON<any>(peopleRequest);
-
-            for (const people of peopleResult) {
-                if (peopleTags.includes(people.name)) {
-                    body[KAVITA_PERSON_ROLES[people.role]] = body[KAVITA_PERSON_ROLES[people.role]] ?? [];
-                    body[KAVITA_PERSON_ROLES[people.role]].push(people.id);
-                }
-            }
-            
-            const tagRequst = {
-                url: `${kavitaURL}/Series/all`,
-                data: JSON.stringify(body),
-                method: 'POST'
-            };
-
-            const tagResult = await fetchJSON<any>(tagRequst);
-
-            for (const manga of tagResult) {
-                tagSearchTiles.push({
-                        title: manga.name,
-                        imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
-                        mangaId: `${manga.id}`,
-                        subtitle: undefined
-                    });
-            }
-        }
-
-        result = (tagSearchTiles.length > 0 && titleSearchTiles.length > 0) ? tagSearchTiles.filter((value) => titleSearchTiles.some((target) => target.imageUrl === value.imageUrl)) : titleSearchTiles.concat(tagSearchTiles)
-    
         result = result.slice(page * pageSize, (page + 1) * pageSize);
 
         return {
             items: result,
-            metadata: { offset: page + 1, collectedIds: metadata.collectedIds }
+            metadata: { offset: page + 1, collectedIds: metadata.collectedIds },
         };
     }
 }

@@ -1,7 +1,6 @@
 // TODO: Rework
 
 import {
-    ButtonRow,
     Form,
     InputRow,
     LabelRow,
@@ -9,8 +8,12 @@ import {
     Section,
     ToggleRow,
 } from "@paperback/types";
-
-import { getKavitaApiKey, getKavitaEnableRecursiveSearch, getKavitaPageSize, getKavitaUrl, setKavitaEnableRecursiveSearch } from "../settings";
+import {
+    getKavitaApiKey,
+    getKavitaEnableRecursiveSearch,
+    getKavitaPageSize,
+    getKavitaUrl,
+} from "../settings";
 import { State } from "../utils/StateUtil";
 
 export class SettingsForm extends Form {
@@ -35,31 +38,44 @@ class ServerSettingsForm extends Form {
     constructor() {
         super();
         this.url = new State<string>(this, "kavita_url", getKavitaUrl());
-        this.apikey = new State<string>(this, "kavita_apikey", getKavitaApiKey());
-        this.pageSize = new State<string>(this, "kavita_page_size", getKavitaPageSize());
-        this.enableRecursiveSearch = new State<boolean>(this, "kavita_enable_recursive_search", getKavitaEnableRecursiveSearch());
+        this.apikey = new State<string>(
+            this,
+            "kavita_apikey",
+            getKavitaApiKey(),
+        );
+        this.pageSize = new State<string>(
+            this,
+            "kavita_page_size",
+            getKavitaPageSize(),
+        );
+        this.enableRecursiveSearch = new State<boolean>(
+            this,
+            "kavita_enable_recursive_search",
+            getKavitaEnableRecursiveSearch(),
+        );
     }
 
     override getSections(): Application.FormSectionElement[] {
         return [
-            Section("info",[
+            Section("info", [
                 LabelRow("", {
                     title: "Demo Server",
-                    subtitle: "Server URL: https://demo.kavitareader.com\nUsername: demouser\nPassword: Demouser64\n\nNote: Values are case-sensitive.",
-                    value: ""
-                })
+                    subtitle:
+                        "Server URL: https://demo.kavitareader.com\nUsername: demouser\nPassword: Demouser64\n\nNote: Values are case-sensitive.",
+                    value: "",
+                }),
             ]),
 
             Section("server", [
                 InputRow("url", {
                     title: "Server URL",
                     value: this.url.value,
-                    onValueChange: this.url.selector
+                    onValueChange: this.url.selector,
                 }),
                 InputRow("apikey", {
                     title: "API Key",
                     value: this.apikey.value,
-                    onValueChange: this.apikey.selector
+                    onValueChange: this.apikey.selector,
                 }),
                 InputRow("pageSize", {
                     title: "Page Size",
@@ -72,7 +88,8 @@ class ServerSettingsForm extends Form {
                     title: "Enable Recursive Search",
                     value: this.enableRecursiveSearch.value,
                     onValueChange: this.enableRecursiveSearch.selector,
-                    subtitle: "Enables searching for tags and persons in the title search.",
+                    subtitle:
+                        "Enables searching for tags and persons in the title search.",
                 }),
             ]),
         ];

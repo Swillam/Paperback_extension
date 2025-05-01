@@ -2,6 +2,118 @@ declare namespace Kavita {
     type ChapterResponse = Volume[];
     type AllLibraries = LibraryResponse[];
 
+    export interface SearchResponse {
+        libraries: Library[];
+        series: Series[];
+        collections: Collection[];
+        readingLists: ReadingList[];
+        persons: Person[];
+        genres: Genre[];
+        tags: Tag[];
+        files: FileEntry[];
+        chapters: Chapter[];
+        bookmarks: Bookmark[];
+    }
+
+    export interface SearchResponse {
+        libraries: Library[];
+        series: Series[];
+        collections: Collection[];
+        readingLists: ReadingList[];
+        persons: Person[];
+        genres: Genre[];
+        tags: Tag[];
+        files: FileEntry[];
+        chapters: Chapter[];
+        bookmarks: Bookmark[];
+    }
+
+    export interface Library {
+        id: number;
+        name: string;
+        lastScanned: string;
+        type: number;
+        coverImage: string;
+        folderWatching: boolean;
+        includeInDashboard: boolean;
+        includeInRecommended: boolean;
+        manageCollections: boolean;
+        manageReadingLists: boolean;
+        includeInSearch: boolean;
+        allowScrobbling: boolean;
+        folders: string[];
+        collapseSeriesRelationships: boolean;
+        libraryFileTypes: number[];
+        excludePatterns: string[];
+        allowMetadataMatching: boolean;
+    }
+
+    export interface Series {
+        seriesId: number;
+        name: string;
+        originalName: string;
+        sortName: string;
+        localizedName: string;
+        format: number;
+        libraryName: string;
+        libraryId: number;
+    }
+
+    export interface Collection {
+        id: number;
+        title: string;
+        summary: string;
+        promoted: boolean;
+        ageRating: number;
+        coverImage: string;
+        primaryColor: string;
+        secondaryColor: string;
+        coverImageLocked: boolean;
+        itemCount: number;
+        owner: string;
+        lastSyncUtc: string;
+        source: number;
+        sourceUrl: string;
+        totalSourceCount: number;
+        missingSeriesFromSource: string;
+    }
+
+    export interface ReadingList {
+        id: number;
+        title: string;
+        summary: string;
+        promoted: boolean;
+        coverImageLocked: boolean;
+        coverImage: string;
+        primaryColor: string;
+        secondaryColor: string;
+        itemCount: number;
+        startingYear: number;
+        startingMonth: number;
+        endingYear: number;
+        endingMonth: number;
+        ageRating: number;
+    }
+
+    export interface FileEntry {
+        id: number;
+        filePath: string;
+        pages: number;
+        bytes: number;
+        format: number;
+        created: string;
+        extension: string;
+    }
+
+    export interface Bookmark {
+        libraryId: number;
+        volumeId: number;
+        seriesId: number;
+        chapterId: number;
+        seriesName: string;
+        localizedSeriesName: string;
+    }
+
     interface Volume {
         id: number;
         minNumber: number;
@@ -97,7 +209,7 @@ declare namespace Kavita {
         primaryColor: string;
         secondaryColor: string;
     }
-    
+
     interface ChapterFile {
         id: number;
         filePath: string;
@@ -106,7 +218,7 @@ declare namespace Kavita {
         format: number;
         created: string;
         extension: string;
-    }    
+    }
 
     interface Contributor {
         id: number;
@@ -161,11 +273,15 @@ declare namespace Kavita {
         secondaryColor: string;
     }
 
+    interface SerieMetadataResponse {
+        seriesMetadata: SeriesMetadata;
+    }
+
     interface SerieMetadata {
         id: number;
         summary: string;
-        genres: { id: number; title: string }[];
-        tags: { id: number; title: string }[];
+        genres: Tag[];
+        tags: Tag[];
         writers: Contributor[];
         coverArtists: Contributor[];
         publishers: Contributor[];
@@ -232,5 +348,18 @@ declare namespace Kavita {
     interface Metadata {
         offset?: number;
         collectedIds?: string[];
+    }
+
+    interface RecentlyUpdatedResponse {
+        seriesName: string;
+        seriesId: number;
+        libraryId: number;
+        libraryType: number;
+        title: string;
+        created: string;
+        chapterId: number;
+        volumeId: number;
+        id: number;
+        format: number;
     }
 }

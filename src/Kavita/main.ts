@@ -9,11 +9,9 @@ import {
     Chapter,
     ChapterDetails,
     ChapterProviding,
-    ContentRating,
     DiscoverSection,
     DiscoverSectionItem,
     DiscoverSectionProviding,
-    DiscoverSectionType,
     Extension,
     Form,
     MangaProviding,
@@ -24,17 +22,15 @@ import {
     SearchResultsProviding,
     SettingsFormProviding,
     SourceManga,
-    Tag,
     TagSection,
     UpdateManager,
 } from "@paperback/types";
-
 import { SettingsForm } from "./forms/SettingsForm";
-import { MangaProvider } from "./providers/MangaProvider";
-import { ChapterProvider } from "./providers/ChapterProvider";
-import { SearchProvider } from "./providers/SearchProvider";
 import { KavitaInterceptor } from "./KavitaInterceptor";
+import { ChapterProvider } from "./providers/ChapterProvider";
 import { DiscoverProvider } from "./providers/DiscoverProvider";
+import { MangaProvider } from "./providers/MangaProvider";
+import { SearchProvider } from "./providers/SearchProvider";
 
 // Should match the capabilities which you defined in pbconfig.ts
 type KavitaImplementation = SettingsFormProviding &

@@ -1,11 +1,9 @@
-
-
 export function getKavitaUrl(): string {
     const url = Application.getState("kavita_url") as string | undefined;
     if (url === undefined) {
         return "";
     }
-    return url+"/api";
+    return url + "/api";
 }
 
 export function setKavitaUrl(url: string): void {
@@ -25,7 +23,9 @@ export function setKavitaApiKey(apiKey: string): void {
 }
 
 export function getKavitaPageSize(): string {
-    const pageSize = Application.getState("kavita_page_size") as string | undefined;
+    const pageSize = Application.getState("kavita_page_size") as
+        | string
+        | undefined;
     if (pageSize === undefined) {
         return "20";
     }
@@ -37,13 +37,20 @@ export function setKavitaPageSize(pageSize: string): void {
 }
 
 export function getKavitaEnableRecursiveSearch(): boolean {
-    const enableRecursiveSearch = Application.getState("kavita_enable_recursive_search") as boolean | undefined;
+    const enableRecursiveSearch = Application.getState(
+        "kavita_enable_recursive_search",
+    ) as boolean | undefined;
     if (enableRecursiveSearch === undefined) {
         return false;
     }
     return enableRecursiveSearch;
 }
 
-export function setKavitaEnableRecursiveSearch(enableRecursiveSearch: boolean): void {
-    Application.setState(enableRecursiveSearch, "kavita_enable_recursive_search");
+export function setKavitaEnableRecursiveSearch(
+    enableRecursiveSearch: boolean,
+): void {
+    Application.setState(
+        enableRecursiveSearch,
+        "kavita_enable_recursive_search",
+    );
 }
