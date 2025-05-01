@@ -1,5 +1,6 @@
 import { PaperbackInterceptor, Request, Response } from "@paperback/types";
-import { getKavitaApiKey } from "./settings";
+import { getKavitaApiKey, getKavitaUrl } from "./settings";
+import { fetchJSON } from "./utils/CommonUtils";
 
 // Intercepts all the requests and responses and allows you to make changes to them
 export class KavitaInterceptor extends PaperbackInterceptor {
@@ -12,10 +13,27 @@ export class KavitaInterceptor extends PaperbackInterceptor {
 
     async getAuthorizationString(): Promise<string> {
         if (this.authorization === "") {
-            this.authorization = "Bearer " + getKavitaApiKey();
+            const token = await this.getAuthorization();
+
+            this.authorization = token;
         }
 
         return this.authorization;
+    }
+
+    async getAuthorization(): Promise<string> {
+        const kavitaAPI = getKavitaApiKey();
+        const kavitaURL = getKavitaUrl();
+
+        const request = {
+            url: `${kavitaURL}/Plugin/authenticate?apiKey=${kavitaAPI}&pluginName=Kavya`,
+            method: "POST",
+        };
+
+        const response = await fetchJSON<Kavita.AuthenticateResponse>(request);
+        const token = response.token;
+
+        return token ? `Bearer ${token}` : "";
     }
 
     clearAuthorizationString(): void {
@@ -23,6 +41,11 @@ export class KavitaInterceptor extends PaperbackInterceptor {
     }
 
     override async interceptRequest(request: Request): Promise<Request> {
+        // if the request is /Plugin/authenticate then return the request
+        if (request.url.includes("/Plugin/authenticate")) {
+            return request;
+        }
+
         request.headers = {
             ...request.headers,
             "Content-Type": "application/json",

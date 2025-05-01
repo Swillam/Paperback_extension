@@ -2,6 +2,74 @@ declare namespace Kavita {
     type ChapterResponse = Volume[];
     type AllLibraries = LibraryResponse[];
 
+    export interface AuthenticateResponse {
+        username: string;
+        email: string;
+        token: string;
+        refreshToken: string;
+        apiKey: string;
+        preferences: Preferences;
+        ageRestriction: AgeRestriction;
+        kavitaVersion: string;
+    }
+
+    export interface Preferences {
+        readingDirection: number;
+        scalingOption: number;
+        pageSplitOption: number;
+        readerMode: number;
+        layoutMode: number;
+        emulateBook: boolean;
+        backgroundColor: string;
+        swipeToPaginate: boolean;
+        autoCloseMenu: boolean;
+        showScreenHints: boolean;
+        allowAutomaticWebtoonReaderDetection: boolean;
+        bookReaderMargin: number;
+        bookReaderLineSpacing: number;
+        bookReaderFontSize: number;
+        bookReaderFontFamily: string;
+        bookReaderTapToPaginate: boolean;
+        bookReaderReadingDirection: number;
+        bookReaderWritingStyle: number;
+        theme: Theme;
+        bookReaderThemeName: string;
+        bookReaderLayoutMode: number;
+        bookReaderImmersiveMode: boolean;
+        globalPageLayoutMode: number;
+        blurUnreadSummaries: boolean;
+        promptForDownloadSize: boolean;
+        noTransitions: boolean;
+        collapseSeriesRelationships: boolean;
+        shareReviews: boolean;
+        locale: string;
+        pdfTheme: number;
+        pdfScrollMode: number;
+        pdfLayoutMode: number;
+        pdfSpreadMode: number;
+        aniListScrobblingEnabled: boolean;
+        wantToReadSync: boolean;
+    }
+
+    export interface Theme {
+        id: number;
+        name: string;
+        normalizedName: string;
+        fileName: string;
+        isDefault: boolean;
+        provider: number;
+        previewUrls: string[];
+        description: string;
+        author: string;
+        compatibleVersion: string;
+        selector: string;
+    }
+
+    export interface AgeRestriction {
+        ageRating: number;
+        includeUnknowns: boolean;
+    }
+
     export interface SearchResponse {
         libraries: Library[];
         series: Series[];

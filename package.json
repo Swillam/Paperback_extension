@@ -1,7 +1,7 @@
 {
-    "name": "template-extensions",
-    "repositoryName": "Template Extensions (0.9)",
-    "description": "Paperback extensions designed as templates to help developers get started quickly. Maintained by the Paperback Community.",
+    "name": "swillam-extensions",
+    "repositoryName": "Swillam Extensions (0.9)",
+    "description": "Paperback extensions.",
     "private": true,
     "type": "module",
     "scripts": {
