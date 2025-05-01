@@ -3517,7 +3517,17 @@ var source = (() => {
       const pageSize = getKavitaPageSize();
       const request = {
         url: `${kavitaURL}/Series/all-v2?libraryId=${section.id}&PageNumber=1&PageSize=${pageSize}`,
-        method: "GET"
+        body: JSON.stringify({
+          id: 0,
+          name: "all",
+          combination: 0,
+          sortOptions: {
+            sortField: 1,
+            isAscending: true
+          },
+          limitTo: 0
+        }),
+        method: "POST"
       };
       const json = await fetchJSON(request);
       if (json === void 0) {
