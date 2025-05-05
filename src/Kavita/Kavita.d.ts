@@ -83,19 +83,6 @@ declare namespace Kavita {
         bookmarks: Bookmark[];
     }
 
-    export interface SearchResponse {
-        libraries: Library[];
-        series: Series[];
-        collections: Collection[];
-        readingLists: ReadingList[];
-        persons: Person[];
-        genres: Genre[];
-        tags: Tag[];
-        files: FileEntry[];
-        chapters: Chapter[];
-        bookmarks: Bookmark[];
-    }
-
     export interface Library {
         id: number;
         name: string;
@@ -204,6 +191,16 @@ declare namespace Kavita {
         secondaryColor: string;
     }
 
+    interface ReadingStatus {
+        volumeId: number;
+        chapterId: number;
+        pageNum: number;
+        seriesId: number;
+        libraryId: number;
+        bookScrollId: number | null;
+        lastModifiedUtc: string;
+    }
+
     interface Chapter {
         id: number;
         range: string;
@@ -234,21 +231,21 @@ declare namespace Kavita {
         avgHoursToRead: number;
         webLinks: string;
         isbn: string;
-        writers: string[];
-        coverArtists: string[];
-        publishers: string[];
-        characters: string[];
-        pencillers: string[];
-        inkers: string[];
-        imprints: string[];
-        colorists: string[];
-        letterers: string[];
-        editors: string[];
-        translators: string[];
-        teams: string[];
-        locations: string[];
-        genres: string[];
-        tags: string[];
+        writers: Contributor[];
+        coverArtists: Contributor[];
+        publishers: Contributor[];
+        characters: Contributor[];
+        pencillers: Contributor[];
+        inkers: Contributor[];
+        imprints: Contributor[];
+        colorists: Contributor[];
+        letterers: Contributor[];
+        editors: Contributor[];
+        translators: Contributor[];
+        teams: Contributor[];
+        locations: Contributor[];
+        genres: Genre[];
+        tags: Genre[];
         publicationStatus: number;
         language: string | null;
         count: number;
@@ -425,5 +422,11 @@ declare namespace Kavita {
         volumeId: number;
         id: number;
         format: number;
+    }
+
+    interface FilterStatementDto {
+        comparison: number;
+        field: number;
+        value: string;
     }
 }

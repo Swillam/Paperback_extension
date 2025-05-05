@@ -9,11 +9,14 @@ import {
     Chapter,
     ChapterDetails,
     ChapterProviding,
+    ChapterReadActionQueueProcessingResult,
     DiscoverSection,
     DiscoverSectionItem,
     DiscoverSectionProviding,
     Extension,
     Form,
+    MangaProgress,
+    MangaProgressProviding,
     MangaProviding,
     PagedResults,
     SearchFilter,
@@ -23,6 +26,7 @@ import {
     SettingsFormProviding,
     SourceManga,
     TagSection,
+    TrackedMangaChapterReadAction,
     UpdateManager,
 } from "@paperback/types";
 import { SettingsForm } from "./forms/SettingsForm";
@@ -30,6 +34,7 @@ import { KavitaInterceptor } from "./KavitaInterceptor";
 import { ChapterProvider } from "./providers/ChapterProvider";
 import { DiscoverProvider } from "./providers/DiscoverProvider";
 import { MangaProvider } from "./providers/MangaProvider";
+import { ProgressProvider } from "./providers/ProgressProvider";
 import { SearchProvider } from "./providers/SearchProvider";
 
 // Should match the capabilities which you defined in pbconfig.ts
@@ -38,7 +43,8 @@ type KavitaImplementation = SettingsFormProviding &
     DiscoverSectionProviding &
     SearchResultsProviding &
     MangaProviding &
-    ChapterProviding;
+    ChapterProviding &
+    MangaProgressProviding;
 
 // Main extension class
 export class KavitaExtension implements KavitaImplementation {
@@ -56,6 +62,9 @@ export class KavitaExtension implements KavitaImplementation {
     private chapterProvider: ChapterProvider = new ChapterProvider();
     private searchProvider: SearchProvider = new SearchProvider();
     private discoverProvider: DiscoverProvider = new DiscoverProvider();
+    private progressProvider: ProgressProvider = new ProgressProvider(
+        this.chapterProvider,
+    );
 
     // Method from the Extension interface which we implement, initializes the rate limiter, interceptor, discover sections and search filters
     async initialise(): Promise<void> {
@@ -102,6 +111,27 @@ export class KavitaExtension implements KavitaImplementation {
 
     async getSettingsForm(): Promise<Form> {
         return new SettingsForm();
+    }
+
+    // MangaProgressProviding implementation
+    async getMangaProgressManagementForm(
+        sourceManga: SourceManga,
+    ): Promise<Form> {
+        return this.progressProvider.getMangaProgressManagementForm(
+            sourceManga,
+        );
+    }
+
+    async getMangaProgress(
+        sourceManga: SourceManga,
+    ): Promise<MangaProgress | undefined> {
+        return this.progressProvider.getMangaProgress(sourceManga);
+    }
+
+    async processChapterReadActionQueue(
+        actions: TrackedMangaChapterReadAction[],
+    ): Promise<ChapterReadActionQueueProcessingResult> {
+        return this.progressProvider.processChapterReadActionQueue(actions);
     }
 
     // DiscoverSectionProviding implementation

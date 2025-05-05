@@ -102,12 +102,18 @@ export class DiscoverProvider {
                 method: "GET",
             };
 
-            const json = await fetchJSON<Tag[]>(request);
-
-            if (json === undefined) {
-                throw new Error(
-                    `Failed to create results for ${section.title}`,
+            const json: Tag[] = [];
+            if (tag === "people") {
+                const result = await fetchJSON<Kavita.Contributor[]>(request);
+                json.push(
+                    ...result.map((x) => ({
+                        id: `${x.id}`,
+                        title: x.name,
+                    })),
                 );
+            } else {
+                const result = await fetchJSON<Tag[]>(request);
+                json.push(...result);
             }
 
             sections[tag].tags = [...(sections[tag]?.tags ?? []), ...json];

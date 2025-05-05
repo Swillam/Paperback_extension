@@ -13,7 +13,7 @@ import {
     getKavitaPageSize,
     getKavitaUrl,
 } from "../settings";
-import { fetchJSON, KAVITA_PERSON_ROLES } from "../utils/CommonUtils";
+import { fetchJSON } from "../utils/CommonUtils";
 
 /**
  * Handles manga search functionality and filters
@@ -169,6 +169,20 @@ export class SearchProvider {
             }
 
             if (enableRecursiveSearch) {
+                const arrayOfKey: Record<string, number> = {
+                    tags: 6,
+                    characters: 9,
+                    publisher: 10,
+                    editor: 11,
+                    coverArtist: 12,
+                    letterer: 13,
+                    colorist: 14,
+                    inker: 15,
+                    penciller: 16,
+                    writers: 17,
+                    genres: 18,
+                };
+
                 const tagNames: (keyof Kavita.SearchResponse)[] = [
                     "persons",
                     "genres",
@@ -183,9 +197,18 @@ export class SearchProvider {
                                 titleTagRequest = {
                                     url: `${kavitaURL}/Series/all-v2`,
                                     body: JSON.stringify({
-                                        [KAVITA_PERSON_ROLES[
-                                            (item as Kavita.Contributor).malId
-                                        ]]: [(item as Kavita.Contributor).id],
+                                        id: 0,
+                                        name: "filter-persons",
+                                        statements: this.createSearchQuery(
+                                            (item as Kavita.Genre).title,
+                                            arrayOfKey,
+                                        ),
+                                        combination: 0,
+                                        sortOptions: {
+                                            sortField: 1,
+                                            isAscending: true,
+                                        },
+                                        limitTo: 0,
                                     }),
                                     method: "POST",
                                 };
@@ -194,7 +217,22 @@ export class SearchProvider {
                                 titleTagRequest = {
                                     url: `${kavitaURL}/Series/all-v2`,
                                     body: JSON.stringify({
-                                        [tagName]: [(item as Tag).id],
+                                        id: 0,
+                                        name: `filter-${tagName}`,
+                                        statements: [
+                                            {
+                                                comparison: 5,
+                                                field: arrayOfKey[tagName],
+                                                value: (item as Kavita.Genre)
+                                                    .title,
+                                            },
+                                        ],
+                                        combination: 0,
+                                        sortOptions: {
+                                            sortField: 1,
+                                            isAscending: true,
+                                        },
+                                        limitTo: 0,
                                     }),
                                     method: "POST",
                                 };
@@ -236,5 +274,23 @@ export class SearchProvider {
             items: result,
             metadata: { offset: page + 1, collectedIds: metadata.collectedIds },
         };
+    }
+
+    createSearchQuery(
+        value: string,
+        arrayType: Record<string, number>,
+    ): Kavita.FilterStatementDto[] {
+        const searchQuery: Kavita.FilterStatementDto[] = [];
+        for (const key in arrayType) {
+            if (key == "tags" || key == "genres") {
+                continue;
+            }
+            searchQuery.push({
+                comparison: 5,
+                field: arrayType[key],
+                value: value,
+            });
+        }
+        return searchQuery;
     }
 }

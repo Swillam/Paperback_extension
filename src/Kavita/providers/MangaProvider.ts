@@ -74,6 +74,9 @@ export class MangaProvider {
                 rating: seriesResult.userRating,
                 artworkUrls:
                     /*artworkUrls.length > 0 ? artworkUrls :*/ undefined,
+                additionalInfo: {
+                    libraryId: `${seriesResult.libraryId}`,
+                },
             },
         };
     }

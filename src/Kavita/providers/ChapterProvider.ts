@@ -44,19 +44,14 @@ export class ChapterProvider {
                 const title: string = chapter.range.endsWith(".epub")
                     ? chapter.range.slice(0, -5)
                     : chapter.range.slice(0, -4);
-                const progress: string =
-                    chapter.pagesRead === 0
-                        ? ""
-                        : chapter.pages === chapter.pagesRead
-                          ? "· Read"
-                          : `· Reading ${chapter.pagesRead} page`;
+
                 const time: Date = new Date(
                     chapter.releaseDate === "0001-01-01T00:00:00"
                         ? chapter.created
                         : chapter.releaseDate,
                 );
 
-                const item = {
+                const item: Chapter = {
                     chapterId: `${chapter.id}`,
                     sourceManga,
                     title: chapter.isSpecial ? title : name,
@@ -72,9 +67,13 @@ export class ChapterProvider {
                           ? 0
                           : parseFloat(volume.name), // assign both special and chapters w/o volumes w/ volume 0 as it's hidden by paperback,
                     langCode: chapter.language ?? "en",
-                    version: `${chapter.isSpecial ? "Specials · " : ""}${chapter.pages} pages ${progress}`,
+                    version: `${chapter.isSpecial ? "Specials · " : ""}`,
                     publishDate: time,
                     sortingIndex: i,
+                    additionalInfo: {
+                        pages: `${chapter.pages}`,
+                        pagesRead: `${chapter.pagesRead}`,
+                    },
                 };
 
                 i++;
