@@ -1828,7 +1828,7 @@ var source = (() => {
       init_buffer();
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Form = void 0;
-      var Form3 = class {
+      var Form4 = class {
         reloadForm() {
           const formId = this["__underlying_formId"];
           if (!formId)
@@ -1841,7 +1841,7 @@ var source = (() => {
           return false;
         }
       };
-      exports.Form = Form3;
+      exports.Form = Form4;
     }
   });
 
@@ -1851,16 +1851,16 @@ var source = (() => {
       "use strict";
       init_buffer();
       Object.defineProperty(exports, "__esModule", { value: true });
-      exports.LabelRow = LabelRow2;
+      exports.LabelRow = LabelRow3;
       exports.InputRow = InputRow2;
       exports.ToggleRow = ToggleRow2;
-      exports.SelectRow = SelectRow;
+      exports.SelectRow = SelectRow2;
       exports.ButtonRow = ButtonRow;
       exports.WebViewRow = WebViewRow;
       exports.NavigationRow = NavigationRow2;
       exports.OAuthButtonRow = OAuthButtonRow;
       exports.DeferredItem = DeferredItem;
-      function LabelRow2(id, props) {
+      function LabelRow3(id, props) {
         return { ...props, id, type: "labelRow", isHidden: props.isHidden ?? false };
       }
       function InputRow2(id, props) {
@@ -1869,7 +1869,7 @@ var source = (() => {
       function ToggleRow2(id, props) {
         return { ...props, id, type: "toggleRow", isHidden: props.isHidden ?? false };
       }
-      function SelectRow(id, props) {
+      function SelectRow2(id, props) {
         return { ...props, id, type: "selectRow", isHidden: props.isHidden ?? false };
       }
       function ButtonRow(id, props) {
@@ -1906,8 +1906,8 @@ var source = (() => {
       "use strict";
       init_buffer();
       Object.defineProperty(exports, "__esModule", { value: true });
-      exports.Section = Section2;
-      function Section2(params, items) {
+      exports.Section = Section3;
+      function Section3(params, items) {
         let info;
         if (typeof params === "string") {
           info = { id: params };
@@ -3043,7 +3043,7 @@ var source = (() => {
     KavitaExtension: () => KavitaExtension
   });
   init_buffer();
-  var import_types6 = __toESM(require_lib(), 1);
+  var import_types7 = __toESM(require_lib(), 1);
 
   // src/Kavita/forms/SettingsForm.ts
   init_buffer();
@@ -3198,22 +3198,6 @@ var source = (() => {
     3: "Cancelled",
     4: "Ended"
   };
-  var KAVITA_PERSON_ROLES = {
-    "1": "other",
-    "2": "artist",
-    "3": "writers",
-    // KavitaAPI /api/series/all uses 'writers' instead of 'writer'
-    "4": "penciller",
-    "5": "inker",
-    "6": "colorist",
-    "7": "letterer",
-    "8": "coverArtist",
-    "9": "editor",
-    "10": "publisher",
-    "11": "character",
-    "12": "translators"
-    // KavitaAPI /api/series/all uses 'translators' instead of 'translator'
-  };
   async function fetchJSON(request) {
     const [response, buffer] = await Application.scheduleRequest(request);
     const data = Application.arrayBufferToUTF8String(buffer);
@@ -3295,7 +3279,6 @@ var source = (() => {
         for (const chapter of volume.chapters) {
           const name = chapter.number === chapter.range ? chapter.titleName ?? "" : `${chapter.range.replace(`${chapter.number}-`, "")}${chapter.titleName ? ` - ${chapter.titleName}` : ""}`;
           const title = chapter.range.endsWith(".epub") ? chapter.range.slice(0, -5) : chapter.range.slice(0, -4);
-          const progress = chapter.pagesRead === 0 ? "" : chapter.pages === chapter.pagesRead ? "\xB7 Read" : `\xB7 Reading ${chapter.pagesRead} page`;
           const time = new Date(
             chapter.releaseDate === "0001-01-01T00:00:00" ? chapter.created : chapter.releaseDate
           );
@@ -3308,9 +3291,13 @@ var source = (() => {
             volume: chapter.isSpecial ? 0 : volume.name === "-100000" ? 0 : parseFloat(volume.name),
             // assign both special and chapters w/o volumes w/ volume 0 as it's hidden by paperback,
             langCode: chapter.language ?? "en",
-            version: `${chapter.isSpecial ? "Specials \xB7 " : ""}${chapter.pages} pages ${progress}`,
+            version: `${chapter.isSpecial ? "Specials \xB7 " : ""}`,
             publishDate: time,
-            sortingIndex: i
+            sortingIndex: i,
+            additionalInfo: {
+              pages: `${chapter.pages}`,
+              pagesRead: `${chapter.pagesRead}`
+            }
           };
           i++;
           if (chapter.isSpecial) specials.push(item);
@@ -3464,11 +3451,18 @@ var source = (() => {
           url: `${getKavitaUrl()}/Metadata/${tag}`,
           method: "GET"
         };
-        const json = await fetchJSON(request);
-        if (json === void 0) {
-          throw new Error(
-            `Failed to create results for ${section.title}`
+        const json = [];
+        if (tag === "people") {
+          const result = await fetchJSON(request);
+          json.push(
+            ...result.map((x) => ({
+              id: `${x.id}`,
+              title: x.name
+            }))
           );
+        } else {
+          const result = await fetchJSON(request);
+          json.push(...result);
         }
         sections[tag].tags = [...sections[tag]?.tags ?? [], ...json];
       }
@@ -3703,8 +3697,411 @@ var source = (() => {
           artworkUrls: (
             /*artworkUrls.length > 0 ? artworkUrls :*/
             void 0
-          )
+          ),
+          additionalInfo: {
+            libraryId: `${seriesResult.libraryId}`
+          }
         }
+      };
+    }
+  };
+
+  // src/Kavita/providers/ProgressProvider.ts
+  init_buffer();
+
+  // src/Kavita/forms/MangaProgressForm.ts
+  init_buffer();
+  var import_types6 = __toESM(require_lib(), 1);
+  var MangaProgressForm = class extends import_types6.Form {
+    constructor(sourceManga, currentStatus = "not readed", readChapterIds = null, chapters) {
+      super();
+      this.sourceManga = sourceManga;
+      this.currentStatus = currentStatus;
+      this.readChapterIds = readChapterIds;
+      this.chapters = chapters;
+      this.sourceManga = sourceManga;
+      this.chapters = chapters || [];
+      this.readChapterIds = readChapterIds;
+      this.currentStatus = currentStatus;
+    }
+    /**
+     * Helper to determine if text will be too long for UI layout
+     */
+    isTextTooLong(title, value) {
+      const getVisualLength = (text) => {
+        let length = 0;
+        for (const char of text) {
+          if (/[wmWM]/.test(char)) {
+            length += 1.5;
+          } else if (/[iltfjrI!.,']/.test(char)) {
+            length += 0.5;
+          } else {
+            length += 1;
+          }
+        }
+        return length;
+      };
+      return getVisualLength(title) + getVisualLength(value) + 2 > 45;
+    }
+    getSections() {
+      const tagRows = [];
+      if (this.sourceManga.mangaInfo.tagGroups?.length) {
+        for (const tagGroup of this.sourceManga.mangaInfo.tagGroups) {
+          if (tagGroup.tags.length) {
+            tagRows.push(
+              (0, import_types6.LabelRow)(`tag_group_${tagGroup.id}`, {
+                title: tagGroup.title,
+                subtitle: tagGroup.tags.map((tag) => tag.title).join(", ")
+              })
+            );
+          }
+        }
+      }
+      const sections = [
+        (0, import_types6.Section)("manga_info", [
+          this.isTextTooLong(
+            "Title",
+            this.sourceManga.mangaInfo.primaryTitle
+          ) ? (0, import_types6.LabelRow)("title", {
+            title: "Title",
+            subtitle: this.sourceManga.mangaInfo.primaryTitle
+          }) : (0, import_types6.LabelRow)("title", {
+            title: "Title",
+            value: this.sourceManga.mangaInfo.primaryTitle
+          }),
+          this.isTextTooLong(
+            "Author",
+            this.sourceManga.mangaInfo.author || "Unknown"
+          ) ? (0, import_types6.LabelRow)("author", {
+            title: "Author",
+            subtitle: this.sourceManga.mangaInfo.author || "Unknown"
+          }) : (0, import_types6.LabelRow)("author", {
+            title: "Author",
+            value: this.sourceManga.mangaInfo.author || "Unknown"
+          }),
+          ...this.sourceManga.mangaInfo.artist ? [
+            (0, import_types6.LabelRow)("artist", {
+              title: "Artist",
+              value: this.sourceManga.mangaInfo.artist
+            })
+          ] : [],
+          (0, import_types6.LabelRow)("status", {
+            title: "Status",
+            value: this.sourceManga.mangaInfo.status || "Unknown"
+          }),
+          ...this.sourceManga.mangaInfo.rating !== void 0 ? [
+            (0, import_types6.LabelRow)("rating", {
+              title: "Rating",
+              value: `${(this.sourceManga.mangaInfo.rating * 100).toFixed(0)}%`
+            })
+          ] : [],
+          (0, import_types6.LabelRow)("content_rating", {
+            title: "Content Rating",
+            value: this.sourceManga.mangaInfo.contentRating
+          }),
+          ...tagRows
+        ])
+      ];
+      if (this.sourceManga.mangaInfo.secondaryTitles?.length) {
+        sections.push(
+          (0, import_types6.Section)("alternative_titles", [
+            (0, import_types6.LabelRow)("alt_titles", {
+              title: "Alternative Titles",
+              subtitle: this.sourceManga.mangaInfo.secondaryTitles.join(
+                "| "
+              )
+            })
+          ])
+        );
+      }
+      sections.push(
+        (0, import_types6.Section)("synopsis", [
+          (0, import_types6.LabelRow)("synopsis", {
+            title: "Synopsis",
+            subtitle: this.sourceManga.mangaInfo.synopsis || "No synopsis available"
+          })
+        ])
+      );
+      sections.push(
+        (0, import_types6.Section)("reading_status", [
+          (0, import_types6.LabelRow)("current_status", {
+            title: "Current Status",
+            value: this.currentStatus
+          }),
+          (0, import_types6.SelectRow)("reading_status", {
+            title: "Change Status",
+            subtitle: `Currently: ${this.currentStatus}`,
+            value: [this.currentStatus],
+            options: [
+              { id: "reading", title: "Reading" },
+              { id: "not readed", title: "Not Read" },
+              { id: "readed", title: "Read" }
+            ],
+            minItemCount: 1,
+            maxItemCount: 1,
+            onValueChange: Application.Selector(
+              this,
+              "handleStatusChange"
+            )
+          })
+        ])
+      );
+      const totalChapters = (this.sourceManga.chapterCount ?? 0) > 0 ? this.sourceManga.chapterCount : this.chapters.length;
+      let unreadChapters = this.sourceManga.unreadChapterCount || 0;
+      if (unreadChapters === 0 && this.readChapterIds) {
+        unreadChapters = this.chapters.filter(
+          (chapter) => !this.readChapterIds?.has(chapter.chapterId)
+        ).length;
+      }
+      let newChapters = this.sourceManga.newChapterCount || 0;
+      if (newChapters === 0 && this.readChapterIds) {
+        newChapters = this.chapters.filter(
+          (chapter) => !this.readChapterIds?.has(chapter.chapterId)
+        ).length;
+      }
+      sections.push(
+        (0, import_types6.Section)("chapter_stats", [
+          (0, import_types6.LabelRow)("total_chapters", {
+            title: "Total Chapters",
+            value: `${totalChapters}`
+          }),
+          (0, import_types6.LabelRow)("unread_chapters", {
+            title: "Unread Chapters",
+            value: `${unreadChapters}`
+          }),
+          (0, import_types6.LabelRow)("new_chapters", {
+            title: "New Chapters",
+            value: `${newChapters}`
+          })
+        ])
+      );
+      if (this.chapters && this.chapters.length > 0) {
+        const chapterItems = [];
+        chapterItems.push(
+          (0, import_types6.LabelRow)("chapter_list_header", {
+            title: "Chapter List",
+            subtitle: `${this.chapters.length} chapters available - Read chapters are marked with \u2713`
+          })
+        );
+        for (const chapter of this.chapters) {
+          const isRead = this.readChapterIds?.has(chapter.chapterId) || false;
+          const readMark = isRead ? "\u2713 " : "";
+          let chapterTitle = `${readMark}`;
+          if (chapter.volume) {
+            chapterTitle += `Vol ${chapter.volume} `;
+          }
+          chapterTitle += `Ch ${chapter.chapNum}`;
+          if (chapter.title) {
+            chapterTitle += `: ${chapter.title}`;
+          }
+          chapterItems.push(
+            (0, import_types6.LabelRow)(`chapter_${chapter.chapterId}`, {
+              title: chapterTitle,
+              subtitle: `${chapter.version || ""}`
+            })
+          );
+        }
+        sections.push((0, import_types6.Section)("chapter_list", chapterItems));
+      } else if (this.chapters.length === 0) {
+        sections.push(
+          (0, import_types6.Section)("chapter_list", [
+            (0, import_types6.LabelRow)("no_chapters", {
+              title: "No chapters available",
+              subtitle: "No chapters were found for this manga"
+            })
+          ])
+        );
+      }
+      return sections;
+    }
+    /**
+     * Handles updating the user's reading status for the manga
+     */
+    async handleStatusChange(value) {
+      if (value.length === 0) return;
+      const newStatus = value[0];
+      if (newStatus === this.currentStatus) return;
+      this.currentStatus = newStatus;
+      this.reloadForm();
+    }
+    /**
+     * Submits changes to reading status to Kavita
+     */
+    async formDidSubmit() {
+      try {
+        switch (this.currentStatus) {
+          case "not readed": {
+            const markUnreadRequest = {
+              url: `${getKavitaUrl()}/api/Reader/mark-unread`,
+              body: JSON.stringify({
+                seriesId: this.sourceManga.mangaId
+              }),
+              method: "POST"
+            };
+            await Application.scheduleRequest(markUnreadRequest);
+            break;
+          }
+          case "readed": {
+            const markReadRequest = {
+              url: `${getKavitaUrl()}/api/Reader/mark-read`,
+              body: JSON.stringify({
+                seriesId: this.sourceManga.mangaId
+              }),
+              method: "POST"
+            };
+            await Application.scheduleRequest(markReadRequest);
+            break;
+          }
+          case "reading": {
+            for (const chapter of this.chapters) {
+              if (this.readChapterIds?.has(chapter.chapterId)) {
+                const markReadRequest = {
+                  url: `${getKavitaUrl()}/api/Reader/progress`,
+                  body: {
+                    volumeId: chapter.volume ?? this.sourceManga.mangaId,
+                    chapterId: chapter.chapterId,
+                    pageNum: chapter.additionalInfo?.pages || 0,
+                    seriesId: this.sourceManga.mangaId,
+                    libraryId: this.sourceManga.mangaInfo.additionalInfo?.libraryId ?? 0,
+                    lastModifiedUtc: (/* @__PURE__ */ new Date()).toISOString()
+                  },
+                  method: "POST"
+                };
+                await Application.scheduleRequest(markReadRequest);
+              }
+            }
+            break;
+          }
+          default:
+            throw new Error(`Invalid status: ${this.currentStatus}`);
+        }
+      } catch (error) {
+        console.log(`Error updating manga progress: ${String(error)}`);
+        throw new Error(
+          `Failed to update manga progress: ${String(error)}`
+        );
+      }
+    }
+  };
+
+  // src/Kavita/providers/ProgressProvider.ts
+  var ProgressProvider = class {
+    chapterProvider;
+    constructor(chapterProvider) {
+      this.chapterProvider = chapterProvider;
+    }
+    /**
+     * Returns the form for managing manga reading progress
+     */
+    async getMangaProgressManagementForm(sourceManga) {
+      const kavitaUrl = getKavitaUrl();
+      const requestReadingStatus = {
+        url: `${kavitaUrl}/Reader/has-progress?seriesId=${sourceManga.mangaId}`,
+        method: "GET"
+      };
+      const chapters = await this.chapterProvider.getChapters(sourceManga);
+      const resultReadingStatus = await fetchJSON(requestReadingStatus);
+      if (!resultReadingStatus) {
+        return new MangaProgressForm(
+          sourceManga,
+          "not readed",
+          null,
+          chapters
+        );
+      }
+      let readingStatus = "reading";
+      const readChapterIds = /* @__PURE__ */ new Set();
+      for (const chapter of chapters) {
+        const pagesRead = chapter.additionalInfo?.pagesRead ?? "0";
+        if (parseInt(pagesRead) === 0) {
+          readChapterIds.add(chapter.chapterId);
+        }
+      }
+      if (readChapterIds.size === 0) {
+        readingStatus = "not readed";
+      } else if (readChapterIds.size === chapters.length) {
+        readingStatus = "readed";
+      }
+      return new MangaProgressForm(
+        sourceManga,
+        readingStatus,
+        readChapterIds,
+        chapters
+      );
+    }
+    /**
+     * Gets the current reading progress for a manga
+     */
+    async getMangaProgress(sourceManga) {
+      try {
+        const result = await fetchJSON({
+          url: `${getKavitaUrl()}/api/Reader/continue-point?seriesId=${sourceManga.mangaId}`,
+          method: "GET"
+        });
+        const chapters = await this.chapterProvider.getChapters(sourceManga);
+        const chapter = chapters.find(
+          (chapter2) => chapter2.chapterId === `${result.id}`
+        );
+        if (!chapter) {
+          console.warn(
+            `Chapter not found for manga: ${sourceManga.mangaId}`
+          );
+          return void 0;
+        }
+        return {
+          sourceManga,
+          lastReadChapter: chapter
+        };
+      } catch (error) {
+        console.log(`Error fetching manga progress: ${String(error)}`);
+        return void 0;
+      }
+    }
+    /**
+     * Processes chapter read status updates to MangaDex
+     */
+    async processChapterReadActionQueue(actions) {
+      const successfulItems = [];
+      const failedItems = [];
+      for (const action of actions) {
+        const chapterId = action.readChapter?.chapterId;
+        const chapterPageNumber = action.readChapter?.chapNum;
+        if (!chapterId) {
+          console.warn(
+            `Skipping chapter read action due to invalid or missing chapterId ('${chapterId ?? "undefined"}') for manga: ${action.sourceManga.mangaId}`
+          );
+          continue;
+        }
+        const mangaId = action.sourceManga.mangaId;
+        const libraryId = action.sourceManga.mangaInfo.additionalInfo?.libraryId || 0;
+        const kavitaURL = getKavitaUrl();
+        const url = `${kavitaURL}/api/Reader/progress`;
+        const request = {
+          url,
+          method: "POST",
+          body: {
+            volumeId: mangaId,
+            chapterId,
+            pageNum: chapterPageNumber,
+            seriesId: mangaId,
+            libraryId,
+            bookScrollId: null,
+            lastModifiedUtc: (/* @__PURE__ */ new Date()).toISOString()
+          }
+        };
+        try {
+          await Application.scheduleRequest(request);
+          successfulItems.push(mangaId);
+        } catch (error) {
+          console.log(
+            `Error updating read status for ${mangaId}: ${String(error)}`
+          );
+          failedItems.push(mangaId);
+        }
+      }
+      return {
+        successfulItems,
+        failedItems
       };
     }
   };
@@ -3834,6 +4231,19 @@ var source = (() => {
           });
         }
         if (enableRecursiveSearch) {
+          const arrayOfKey = {
+            tags: 6,
+            characters: 9,
+            publisher: 10,
+            editor: 11,
+            coverArtist: 12,
+            letterer: 13,
+            colorist: 14,
+            inker: 15,
+            penciller: 16,
+            writers: 17,
+            genres: 18
+          };
           const tagNames = [
             "persons",
             "genres",
@@ -3847,7 +4257,18 @@ var source = (() => {
                   titleTagRequest = {
                     url: `${kavitaURL}/Series/all-v2`,
                     body: JSON.stringify({
-                      [KAVITA_PERSON_ROLES[item.malId]]: [item.id]
+                      id: 0,
+                      name: "filter-persons",
+                      statements: this.createSearchQuery(
+                        item.title,
+                        arrayOfKey
+                      ),
+                      combination: 0,
+                      sortOptions: {
+                        sortField: 1,
+                        isAscending: true
+                      },
+                      limitTo: 0
                     }),
                     method: "POST"
                   };
@@ -3856,7 +4277,21 @@ var source = (() => {
                   titleTagRequest = {
                     url: `${kavitaURL}/Series/all-v2`,
                     body: JSON.stringify({
-                      [tagName]: [item.id]
+                      id: 0,
+                      name: `filter-${tagName}`,
+                      statements: [
+                        {
+                          comparison: 5,
+                          field: arrayOfKey[tagName],
+                          value: item.title
+                        }
+                      ],
+                      combination: 0,
+                      sortOptions: {
+                        sortField: 1,
+                        isAscending: true
+                      },
+                      limitTo: 0
                     }),
                     method: "POST"
                   };
@@ -3890,12 +4325,26 @@ var source = (() => {
         metadata: { offset: page + 1, collectedIds: metadata.collectedIds }
       };
     }
+    createSearchQuery(value, arrayType) {
+      const searchQuery = [];
+      for (const key in arrayType) {
+        if (key == "tags" || key == "genres") {
+          continue;
+        }
+        searchQuery.push({
+          comparison: 5,
+          field: arrayType[key],
+          value
+        });
+      }
+      return searchQuery;
+    }
   };
 
   // src/Kavita/main.ts
   var KavitaExtension = class {
     // Implementation of the main rate limiter
-    mainRateLimiter = new import_types6.BasicRateLimiter("main", {
+    mainRateLimiter = new import_types7.BasicRateLimiter("main", {
       numberOfRequests: 15,
       bufferInterval: 10,
       ignoreImages: true
@@ -3906,6 +4355,9 @@ var source = (() => {
     chapterProvider = new ChapterProvider();
     searchProvider = new SearchProvider();
     discoverProvider = new DiscoverProvider();
+    progressProvider = new ProgressProvider(
+      this.chapterProvider
+    );
     // Method from the Extension interface which we implement, initializes the rate limiter, interceptor, discover sections and search filters
     async initialise() {
       this.mainRateLimiter.registerInterceptor();
@@ -3939,6 +4391,18 @@ var source = (() => {
     }
     async getSettingsForm() {
       return new SettingsForm();
+    }
+    // MangaProgressProviding implementation
+    async getMangaProgressManagementForm(sourceManga) {
+      return this.progressProvider.getMangaProgressManagementForm(
+        sourceManga
+      );
+    }
+    async getMangaProgress(sourceManga) {
+      return this.progressProvider.getMangaProgress(sourceManga);
+    }
+    async processChapterReadActionQueue(actions) {
+      return this.progressProvider.processChapterReadActionQueue(actions);
     }
     // DiscoverSectionProviding implementation
     async getDiscoverSections() {
