@@ -3226,7 +3226,7 @@ var source = (() => {
       const kavitaAPI = getKavitaApiKey();
       const kavitaURL = getKavitaUrl();
       const request = {
-        url: `${kavitaURL}/Plugin/authenticate?apiKey=${kavitaAPI}&pluginName=Kavya`,
+        url: `${kavitaURL}/Plugin/authenticate?apiKey=${kavitaAPI}&pluginName=Kavita`,
         method: "POST"
       };
       const response = await fetchJSON(request);
