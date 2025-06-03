@@ -26,7 +26,7 @@ export class KavitaInterceptor extends PaperbackInterceptor {
         const kavitaURL = getKavitaUrl();
 
         const request = {
-            url: `${kavitaURL}/Plugin/authenticate?apiKey=${kavitaAPI}&pluginName=Kavya`,
+            url: `${kavitaURL}/Plugin/authenticate?apiKey=${kavitaAPI}&pluginName=Kavita`,
             method: "POST",
         };
 
