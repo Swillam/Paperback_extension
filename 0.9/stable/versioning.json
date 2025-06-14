@@ -1,8 +1,8 @@
 {
-  "buildTime": "2025-06-03T22:36:45.340Z",
+  "buildTime": "2025-06-14T23:10:23.051Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.50",
-    "types": "1.0.0-alpha.50"
+    "toolchain": "1.0.0-alpha.53",
+    "types": "1.0.0-alpha.53"
   },
   "repository": {
     "name": "Swillam Extensions (0.9)",
@@ -12,7 +12,7 @@
     {
       "name": "Kavita",
       "description": "Kavita client extension for Paperback",
-      "version": "1.0.0-alpha.8",
+      "version": "1.0.0-alpha.10",
       "icon": "icon.png",
       "language": "mutli",
       "contentRating": "SAFE",
