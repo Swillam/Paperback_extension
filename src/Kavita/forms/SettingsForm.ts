@@ -2,12 +2,12 @@
 
 import {
     Form,
+    FormSectionElement,
     InputRow,
     LabelRow,
     NavigationRow,
     Section,
     ToggleRow,
-    FormSectionElement,
 } from "@paperback/types";
 import {
     getKavitaApiKey,
