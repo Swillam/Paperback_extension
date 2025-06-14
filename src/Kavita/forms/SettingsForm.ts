@@ -7,6 +7,7 @@ import {
     NavigationRow,
     Section,
     ToggleRow,
+    FormSectionElement,
 } from "@paperback/types";
 import {
     getKavitaApiKey,
@@ -17,7 +18,7 @@ import {
 import { State } from "../utils/StateUtil";
 
 export class SettingsForm extends Form {
-    override getSections(): Application.FormSectionElement[] {
+    override getSections(): FormSectionElement[] {
         return [
             Section("server", [
                 NavigationRow("server", {
@@ -55,7 +56,7 @@ class ServerSettingsForm extends Form {
         );
     }
 
-    override getSections(): Application.FormSectionElement[] {
+    override getSections(): FormSectionElement[] {
         return [
             Section("info", [
                 LabelRow("", {

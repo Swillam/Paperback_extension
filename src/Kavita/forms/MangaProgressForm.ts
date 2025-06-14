@@ -2,6 +2,7 @@ import {
     Chapter,
     Form,
     FormItemElement,
+    FormSectionElement,
     LabelRow,
     Section,
     SelectRow,
@@ -50,7 +51,7 @@ export class MangaProgressForm extends Form {
         return getVisualLength(title) + getVisualLength(value) + 2 > 45;
     }
 
-    getSections(): Application.FormSectionElement[] {
+    getSections(): FormSectionElement[] {
         const tagRows: FormItemElement<unknown>[] = [];
         if (this.sourceManga.mangaInfo.tagGroups?.length) {
             for (const tagGroup of this.sourceManga.mangaInfo.tagGroups) {
@@ -67,7 +68,7 @@ export class MangaProgressForm extends Form {
             }
         }
 
-        const sections: Application.FormSectionElement[] = [
+        const sections: FormSectionElement[] = [
             Section("manga_info", [
                 this.isTextTooLong(
                     "Title",
