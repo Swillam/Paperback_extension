@@ -1,9 +1,13 @@
 export function getKavitaUrl(): string {
-    const url = Application.getState("kavita_url") as string | undefined;
-    if (url === undefined) {
+    const rawUrl = Application.getState("kavita_url");
+
+    if (typeof rawUrl !== "string" || rawUrl.trim() === "") {
         return "";
     }
-    return url + "/api";
+
+    const url = rawUrl.trim().replace(/\/+$/, ""); // supprime les slashes de fin
+
+    return url.endsWith("/api") ? url : `${url}/api`;
 }
 
 export function setKavitaUrl(url: string): void {

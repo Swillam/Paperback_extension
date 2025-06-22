@@ -195,8 +195,14 @@ export class DiscoverProvider {
             throw new Error(`Failed to create results for ${section.title}`);
         }
 
+        const libraryId = Number(section.id);
+        const mangas = json.filter(x => x.libraryId === libraryId);
+
+        if (mangas.length === 0) {
+            return { items: [], metadata: undefined };
+        }
         return {
-            items: json.map((x) => ({
+            items: mangas.map((x) => ({
                 type: "prominentCarouselItem",
                 imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
                 mangaId: `${x.id}`,
