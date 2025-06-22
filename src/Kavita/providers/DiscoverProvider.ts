@@ -196,7 +196,7 @@ export class DiscoverProvider {
         }
 
         const libraryId = Number(section.id);
-        const mangas = json.filter(x => x.libraryId === libraryId);
+        const mangas = json.filter((x) => x.libraryId === libraryId);
 
         if (mangas.length === 0) {
             return { items: [], metadata: undefined };
