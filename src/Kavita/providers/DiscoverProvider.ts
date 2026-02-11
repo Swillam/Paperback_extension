@@ -128,7 +128,9 @@ export class DiscoverProvider {
                         filters: [
                             {
                                 id: `tags-${section.id}`,
-                                value: { [x.id]: "included" },
+                                value: {
+                                    [`${x.id}:${x.title}`]: "included",
+                                },
                             },
                         ],
                     },

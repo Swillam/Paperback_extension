@@ -15,6 +15,34 @@ import {
 } from "../settings";
 import { fetchJSON } from "../utils/CommonUtils";
 
+// Kavita FilterField enum values
+const FILTER_FIELD = {
+    tags: 6,
+    characters: 9,
+    publisher: 10,
+    editor: 11,
+    coverArtist: 12,
+    letterer: 13,
+    colorist: 14,
+    inker: 15,
+    penciller: 16,
+    writers: 17,
+    genres: 18,
+} as const;
+
+// Kavita FilterComparison enum values
+const FILTER_COMPARISON = {
+    Contains: 5,
+    MustContains: 6,
+    NotContains: 8,
+} as const;
+
+// Kavita FilterCombination enum values
+const FILTER_COMBINATION = {
+    Or: 0,
+    And: 1,
+} as const;
+
 /**
  * Handles manga search functionality and filters
  */
@@ -44,33 +72,35 @@ export class SearchProvider {
         const tagSections: TagSection[] = [];
 
         for (const tagName of tagNames) {
+            const libraryParam = includeLibraryIds.length > 0 ? `?libraryIds=${includeLibraryIds.join(",")}` : "";
             const request = {
-                url: `${kavitaURL}/Metadata/${tagName}`,
-                param: `?libraryIds=${includeLibraryIds.join(",")}`,
+                url: `${kavitaURL}/Metadata/${tagName}${libraryParam}`,
                 method: "GET",
             };
-            const result = await fetchJSON<Kavita.Genre[]>(request);
-            const names: string[] = [];
+
             const tags: Tag[] = [];
 
-            result.forEach((item: Kavita.Genre) => {
-                switch (tagName) {
-                    case "people":
-                        if (!names.includes(item.title)) {
-                            names.push(item.title);
-                            tags.push({
-                                id: `${tagName}-${item.id}`,
-                                title: item.title,
-                            });
-                        }
-                        break;
-                    default:
+            if (tagName === "people") {
+                const result = await fetchJSON<Kavita.Contributor[]>(request);
+                const names: string[] = [];
+                for (const item of result) {
+                    if (!names.includes(item.name)) {
+                        names.push(item.name);
                         tags.push({
-                            id: `${tagName}-${item.id}`,
-                            title: item.title,
+                            id: `${tagName}-${item.id}:${item.name}`,
+                            title: item.name,
                         });
+                    }
                 }
-            });
+            } else {
+                const result = await fetchJSON<Kavita.Genre[]>(request);
+                for (const item of result) {
+                    tags.push({
+                        id: `${tagName}-${item.id}:${item.title}`,
+                        title: item.title,
+                    });
+                }
+            }
 
             tagSections.push({
                 id: tagName,
@@ -128,6 +158,109 @@ export class SearchProvider {
     }
 
     /**
+     * Extracts filter statements from query filters
+     */
+    private buildFilterStatements(
+        query: SearchQuery,
+    ): {
+        includeStatements: Kavita.FilterStatementDto[];
+        excludeStatements: Kavita.FilterStatementDto[];
+        includeCombination: number;
+        excludeCombination: number;
+    } {
+        const includeStatements: Kavita.FilterStatementDto[] = [];
+        const excludeStatements: Kavita.FilterStatementDto[] = [];
+        let includeCombination = FILTER_COMBINATION.And;
+        let excludeCombination = FILTER_COMBINATION.Or;
+
+        if (!query.filters || query.filters.length === 0) {
+            return { includeStatements, excludeStatements, includeCombination, excludeCombination };
+        }
+
+        // Map tag section IDs to Kavita FilterField values
+        const tagSectionToField: Record<string, number> = {
+            "tags-genres": FILTER_FIELD.genres,
+            "tags-people": FILTER_FIELD.writers,
+            "tags-tags": FILTER_FIELD.tags,
+        };
+
+        for (const filter of query.filters) {
+            if (filter.id === "includeOperator") {
+                includeCombination = filter.value === "OR"
+                    ? FILTER_COMBINATION.Or
+                    : FILTER_COMBINATION.And;
+                continue;
+            }
+            if (filter.id === "excludeOperator") {
+                excludeCombination = filter.value === "OR"
+                    ? FILTER_COMBINATION.Or
+                    : FILTER_COMBINATION.And;
+                continue;
+            }
+
+            const field = tagSectionToField[filter.id];
+            if (field === undefined) continue;
+
+            const filterValue = filter.value as Record<string, string>;
+            if (!filterValue || typeof filterValue !== "object") continue;
+
+            for (const [tagId, status] of Object.entries(filterValue)) {
+                const tagTitle = this.resolveTagTitle(tagId, query);
+                if (!tagTitle) continue;
+
+                if (status === "included") {
+                    includeStatements.push({
+                        comparison: FILTER_COMPARISON.Contains,
+                        field: field,
+                        value: tagTitle,
+                    });
+                } else if (status === "excluded") {
+                    excludeStatements.push({
+                        comparison: FILTER_COMPARISON.NotContains,
+                        field: field,
+                        value: tagTitle,
+                    });
+                }
+            }
+        }
+
+        return { includeStatements, excludeStatements, includeCombination, excludeCombination };
+    }
+
+    /**
+     * Resolves a tag ID to its display title.
+     * First tries to find it in filter options (search filters UI),
+     * then falls back to extracting from the tag ID format "category:title"
+     * (used by Discover genre carousel items).
+     */
+    private resolveTagTitle(
+        tagId: string,
+        query: SearchQuery,
+    ): string | undefined {
+        // Try to find title from filter options (when coming from search filters)
+        if (query.filters) {
+            for (const filter of query.filters) {
+                const options = (filter as Record<string, unknown>).options as
+                    | { id: string; value: string }[]
+                    | undefined;
+                if (!options || !Array.isArray(options)) continue;
+
+                const match = options.find((opt) => opt.id === tagId);
+                if (match) return match.value;
+            }
+        }
+
+        // Fallback: extract title from tag ID format "category:title"
+        // (used when search is triggered from Discover genre tags)
+        const colonIndex = tagId.indexOf(":");
+        if (colonIndex !== -1) {
+            return tagId.substring(colonIndex + 1);
+        }
+
+        return undefined;
+    }
+
+    /**
      * Executes manga search with filters and returns results
      */
     async getSearchResults(
@@ -147,110 +280,114 @@ export class SearchProvider {
 
         let result: SearchResultItem[] = [];
 
+        // Handle text-based search
         if (typeof query.title === "string" && query.title !== "") {
             const titleRequest = {
-                url: `${kavitaURL}/Search/search`,
-                param: `?queryString=${encodeURIComponent(query.title)}`,
+                url: `${kavitaURL}/Search/search?queryString=${encodeURIComponent(query.title)}`,
                 method: "GET",
             };
 
-            // We don't want to throw if the server is unavailable
             const titleResult =
                 await fetchJSON<Kavita.SearchResponse>(titleRequest);
 
-            for (const manga of titleResult.series) {
+            for (const manga of titleResult?.series ?? []) {
+                if (!manga.name) continue;
                 titleSearchIds.push(`${manga.seriesId}`);
                 titleSearchTiles.push({
                     title: manga.name,
                     imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
                     mangaId: `${manga.seriesId}`,
-                    subtitle: undefined,
                 });
             }
 
             if (enableRecursiveSearch) {
-                const arrayOfKey: Record<string, number> = {
-                    tags: 6,
-                    characters: 9,
-                    publisher: 10,
-                    editor: 11,
-                    coverArtist: 12,
-                    letterer: 13,
-                    colorist: 14,
-                    inker: 15,
-                    penciller: 16,
-                    writers: 17,
-                    genres: 18,
-                };
+                for (const person of titleResult?.persons ?? []) {
+                    const personName =
+                        (person as unknown as { name: string }).name;
+                    if (!personName) continue;
 
-                const tagNames: (keyof Kavita.SearchResponse)[] = [
-                    "persons",
+                    const personRequest: Request = {
+                        url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
+                        body: JSON.stringify({
+                            id: 0,
+                            name: "filter-persons",
+                            statements: this.createSearchQuery(personName),
+                            combination: FILTER_COMBINATION.Or,
+                            sortOptions: {
+                                sortField: 1,
+                                isAscending: true,
+                            },
+                            limitTo: 0,
+                        }),
+                        method: "POST",
+                    };
+
+                    const personResult =
+                        await fetchJSON<Kavita.SerieResponse[]>(personRequest);
+
+                    for (const manga of personResult ?? []) {
+                        if (
+                            !titleSearchIds.includes(`${manga.id}`) &&
+                            manga.name
+                        ) {
+                            titleSearchIds.push(`${manga.id}`);
+                            titleSearchTiles.push({
+                                title: manga.name,
+                                imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                                mangaId: `${manga.id}`,
+                            });
+                        }
+                    }
+                }
+
+                const metaTagNames: (keyof Kavita.SearchResponse)[] = [
                     "genres",
                     "tags",
                 ];
 
-                for (const tagName of tagNames) {
-                    for (const item of titleResult[tagName]) {
-                        let titleTagRequest: Request;
-                        switch (tagName) {
-                            case "persons":
-                                titleTagRequest = {
-                                    url: `${kavitaURL}/Series/all-v2`,
-                                    body: JSON.stringify({
-                                        id: 0,
-                                        name: "filter-persons",
-                                        statements: this.createSearchQuery(
-                                            (item as Kavita.Genre).title,
-                                            arrayOfKey,
-                                        ),
-                                        combination: 0,
-                                        sortOptions: {
-                                            sortField: 1,
-                                            isAscending: true,
-                                        },
-                                        limitTo: 0,
-                                    }),
-                                    method: "POST",
-                                };
-                                break;
-                            default:
-                                titleTagRequest = {
-                                    url: `${kavitaURL}/Series/all-v2`,
-                                    body: JSON.stringify({
-                                        id: 0,
-                                        name: `filter-${tagName}`,
-                                        statements: [
-                                            {
-                                                comparison: 5,
-                                                field: arrayOfKey[tagName],
-                                                value: (item as Kavita.Genre)
-                                                    .title,
-                                            },
+                for (const tagName of metaTagNames) {
+                    for (const item of titleResult?.[tagName] ?? []) {
+                        const tagTitle = (item as Kavita.Genre).title;
+                        if (!tagTitle) continue;
+
+                        const tagRequest: Request = {
+                            url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
+                            body: JSON.stringify({
+                                id: 0,
+                                name: `filter-${tagName}`,
+                                statements: [
+                                    {
+                                        comparison:
+                                            FILTER_COMPARISON.Contains,
+                                        field: FILTER_FIELD[
+                                            tagName as keyof typeof FILTER_FIELD
                                         ],
-                                        combination: 0,
-                                        sortOptions: {
-                                            sortField: 1,
-                                            isAscending: true,
-                                        },
-                                        limitTo: 0,
-                                    }),
-                                    method: "POST",
-                                };
-                        }
+                                        value: tagTitle,
+                                    },
+                                ],
+                                combination: FILTER_COMBINATION.Or,
+                                sortOptions: {
+                                    sortField: 1,
+                                    isAscending: true,
+                                },
+                                limitTo: 0,
+                            }),
+                            method: "POST",
+                        };
 
-                        const titleTagResult =
-                            await fetchJSON<Kavita.SerieResponse[]>(
-                                titleTagRequest,
-                            );
+                        const tagResult =
+                            await fetchJSON<Kavita.SerieResponse[]>(tagRequest);
 
-                        for (const manga of titleTagResult) {
-                            if (!titleSearchIds.includes(`${manga.id}`)) {
+                        for (const manga of tagResult ?? []) {
+                            if (
+                                !titleSearchIds.includes(`${manga.id}`) &&
+                                manga.name
+                            ) {
                                 titleSearchIds.push(`${manga.id}`);
                                 titleSearchTiles.push({
                                     title: manga.name,
                                     imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
                                     mangaId: `${manga.id}`,
-                                    subtitle: undefined,
                                 });
                             }
                         }
@@ -259,35 +396,99 @@ export class SearchProvider {
             }
         }
 
-        result =
-            tagSearchTiles.length > 0 && titleSearchTiles.length > 0
-                ? tagSearchTiles.filter((value) =>
-                      titleSearchTiles.some(
-                          (target) => target.imageUrl === value.imageUrl,
-                      ),
-                  )
-                : titleSearchTiles.concat(tagSearchTiles);
+        // Handle tag/filter-based search
+        const { includeStatements, excludeStatements, includeCombination } =
+            this.buildFilterStatements(query);
 
+        const allStatements = [...includeStatements, ...excludeStatements];
+
+        if (allStatements.length > 0) {
+            const filterRequest: Request = {
+                url: `${kavitaURL}/Series/all-v2?PageNumber=${page + 1}&PageSize=${pageSize}`,
+                body: JSON.stringify({
+                    id: 0,
+                    name: "filter-tags",
+                    statements: allStatements,
+                    combination: includeCombination,
+                    sortOptions: {
+                        sortField: 1,
+                        isAscending: true,
+                    },
+                    limitTo: 0,
+                }),
+                method: "POST",
+            };
+
+            const filterResult =
+                await fetchJSON<Kavita.SerieResponse[]>(filterRequest);
+
+            for (const manga of filterResult ?? []) {
+                if (!manga.name) continue;
+                tagSearchTiles.push({
+                    title: manga.name,
+                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                    mangaId: `${manga.id}`,
+                });
+            }
+
+            // When we have both title and tag filters, intersect the results
+            // When only tag filters, use tag results directly
+            if (titleSearchTiles.length > 0 && tagSearchTiles.length > 0) {
+                result = tagSearchTiles.filter((value) =>
+                    titleSearchTiles.some(
+                        (target) => target.mangaId === value.mangaId,
+                    ),
+                );
+            } else if (tagSearchTiles.length > 0) {
+                result = tagSearchTiles;
+            } else {
+                result = titleSearchTiles;
+            }
+
+            // Tag filter search already uses server-side pagination
+            return {
+                items: result,
+                metadata: result.length >= pageSize
+                    ? { offset: page + 1, collectedIds: metadata?.collectedIds }
+                    : undefined,
+            };
+        }
+
+        // Title-only search: client-side pagination
+        result = titleSearchTiles;
         result = result.slice(page * pageSize, (page + 1) * pageSize);
 
         return {
             items: result,
-            metadata: { offset: page + 1, collectedIds: metadata.collectedIds },
+            metadata: result.length >= pageSize
+                ? { offset: page + 1, collectedIds: metadata?.collectedIds }
+                : undefined,
         };
     }
 
+    /**
+     * Creates filter statements for person-based recursive search
+     */
     createSearchQuery(
         value: string,
-        arrayType: Record<string, number>,
     ): Kavita.FilterStatementDto[] {
         const searchQuery: Kavita.FilterStatementDto[] = [];
-        for (const key in arrayType) {
-            if (key == "tags" || key == "genres") {
-                continue;
-            }
+        const personFields = [
+            FILTER_FIELD.characters,
+            FILTER_FIELD.publisher,
+            FILTER_FIELD.editor,
+            FILTER_FIELD.coverArtist,
+            FILTER_FIELD.letterer,
+            FILTER_FIELD.colorist,
+            FILTER_FIELD.inker,
+            FILTER_FIELD.penciller,
+            FILTER_FIELD.writers,
+        ];
+
+        for (const field of personFields) {
             searchQuery.push({
-                comparison: 5,
-                field: arrayType[key],
+                comparison: FILTER_COMPARISON.Contains,
+                field: field,
                 value: value,
             });
         }
