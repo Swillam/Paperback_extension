@@ -1,7 +1,7 @@
 {
-  "buildTime": "2025-06-22T22:06:15.435Z",
+  "buildTime": "2026-02-11T23:34:07.829Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.53",
+    "toolchain": "1.0.0-alpha.57",
     "types": "1.0.0-alpha.53"
   },
   "repository": {
@@ -12,7 +12,7 @@
     {
       "name": "Kavita",
       "description": "Kavita client extension for Paperback",
-      "version": "1.0.0-alpha.11",
+      "version": "1.0.0-alpha.12",
       "icon": "icon.png",
       "language": "mutli",
       "contentRating": "SAFE",
