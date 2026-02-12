@@ -87,7 +87,7 @@ export class SearchProvider {
                     if (!names.includes(item.name)) {
                         names.push(item.name);
                         tags.push({
-                            id: `${tagName}-${item.id}:${item.name}`,
+                            id: `${tagName}-${item.id}:${item.name.replaceAll(" ", "_")}`,
                             title: item.name,
                         });
                     }
@@ -96,7 +96,7 @@ export class SearchProvider {
                 const result = await fetchJSON<Kavita.Genre[]>(request);
                 for (const item of result) {
                     tags.push({
-                        id: `${tagName}-${item.id}:${item.title}`,
+                        id: `${tagName}-${item.id}:${item.title.replaceAll(" ", "_")}`,
                         title: item.title,
                     });
                 }
