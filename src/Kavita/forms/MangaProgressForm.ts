@@ -21,6 +21,8 @@ export class MangaProgressForm extends Form {
         private currentStatus: string = "not readed",
         private readChapterIds: Set<string> | null = null,
         private chapters: Chapter[],
+        // Called once the progress was written, so cached chapters can be refreshed
+        private onSubmitted: () => void = () => undefined,
     ) {
         super();
 
@@ -341,6 +343,7 @@ export class MangaProgressForm extends Form {
                 default:
                     throw new Error(`Invalid status: ${this.currentStatus}`);
             }
+            this.onSubmitted();
         } catch (error) {
             console.log(`Error updating manga progress: ${String(error)}`);
             throw new Error(

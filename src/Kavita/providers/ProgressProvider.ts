@@ -47,6 +47,10 @@ export class ProgressProvider {
                 "not readed",
                 null,
                 chapters,
+                () =>
+                    this.chapterProvider.invalidateChapters(
+                        sourceManga.mangaId,
+                    ),
             );
         }
 
@@ -75,6 +79,7 @@ export class ProgressProvider {
             readingStatus,
             readChapterIds,
             chapters,
+            () => this.chapterProvider.invalidateChapters(sourceManga.mangaId),
         );
     }
 
@@ -164,6 +169,7 @@ export class ProgressProvider {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 successfulItems.push(action.id);
+                this.chapterProvider.invalidateChapters(mangaId);
             } catch (error) {
                 console.log(
                     `Error updating read status for ${mangaId}: ${String(error)}`,
