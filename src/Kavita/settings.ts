@@ -28,8 +28,7 @@ export function setKavitaApiKey(apiKey: string): void {
 
 export function getKavitaPageSize(): string {
     const pageSize = Application.getState("kavita_page_size") as
-        | string
-        | undefined;
+        string | undefined;
     if (pageSize === undefined) {
         return "20";
     }

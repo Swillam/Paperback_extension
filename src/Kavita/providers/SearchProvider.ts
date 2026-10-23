@@ -254,8 +254,7 @@ export class SearchProvider {
         if (query.filters) {
             for (const filter of query.filters) {
                 const options = (filter as Record<string, unknown>).options as
-                    | { id: string; value: string }[]
-                    | undefined;
+                    { id: string; value: string }[] | undefined;
                 if (!options || !Array.isArray(options)) continue;
 
                 const match = options.find((opt) => opt.id === tagId);
