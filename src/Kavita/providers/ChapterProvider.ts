@@ -73,6 +73,7 @@ export class ChapterProvider {
                     additionalInfo: {
                         pages: `${chapter.pages}`,
                         pagesRead: `${chapter.pagesRead}`,
+                        volumeId: `${volume.id}`,
                     },
                 };
 

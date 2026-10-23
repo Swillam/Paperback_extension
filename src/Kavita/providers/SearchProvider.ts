@@ -72,7 +72,10 @@ export class SearchProvider {
         const tagSections: TagSection[] = [];
 
         for (const tagName of tagNames) {
-            const libraryParam = includeLibraryIds.length > 0 ? `?libraryIds=${includeLibraryIds.join(",")}` : "";
+            const libraryParam =
+                includeLibraryIds.length > 0
+                    ? `?libraryIds=${includeLibraryIds.join(",")}`
+                    : "";
             const request = {
                 url: `${kavitaURL}/Metadata/${tagName}${libraryParam}`,
                 method: "GET",
@@ -160,9 +163,7 @@ export class SearchProvider {
     /**
      * Extracts filter statements from query filters
      */
-    private buildFilterStatements(
-        query: SearchQuery,
-    ): {
+    private buildFilterStatements(query: SearchQuery): {
         includeStatements: Kavita.FilterStatementDto[];
         excludeStatements: Kavita.FilterStatementDto[];
         includeCombination: number;
@@ -170,11 +171,16 @@ export class SearchProvider {
     } {
         const includeStatements: Kavita.FilterStatementDto[] = [];
         const excludeStatements: Kavita.FilterStatementDto[] = [];
-        let includeCombination = FILTER_COMBINATION.And;
-        let excludeCombination = FILTER_COMBINATION.Or;
+        let includeCombination: number = FILTER_COMBINATION.And;
+        let excludeCombination: number = FILTER_COMBINATION.Or;
 
         if (!query.filters || query.filters.length === 0) {
-            return { includeStatements, excludeStatements, includeCombination, excludeCombination };
+            return {
+                includeStatements,
+                excludeStatements,
+                includeCombination,
+                excludeCombination,
+            };
         }
 
         // Map tag section IDs to Kavita FilterField values
@@ -186,15 +192,17 @@ export class SearchProvider {
 
         for (const filter of query.filters) {
             if (filter.id === "includeOperator") {
-                includeCombination = filter.value === "OR"
-                    ? FILTER_COMBINATION.Or
-                    : FILTER_COMBINATION.And;
+                includeCombination =
+                    filter.value === "OR"
+                        ? FILTER_COMBINATION.Or
+                        : FILTER_COMBINATION.And;
                 continue;
             }
             if (filter.id === "excludeOperator") {
-                excludeCombination = filter.value === "OR"
-                    ? FILTER_COMBINATION.Or
-                    : FILTER_COMBINATION.And;
+                excludeCombination =
+                    filter.value === "OR"
+                        ? FILTER_COMBINATION.Or
+                        : FILTER_COMBINATION.And;
                 continue;
             }
 
@@ -224,7 +232,12 @@ export class SearchProvider {
             }
         }
 
-        return { includeStatements, excludeStatements, includeCombination, excludeCombination };
+        return {
+            includeStatements,
+            excludeStatements,
+            includeCombination,
+            excludeCombination,
+        };
     }
 
     /**
@@ -302,8 +315,8 @@ export class SearchProvider {
 
             if (enableRecursiveSearch) {
                 for (const person of titleResult?.persons ?? []) {
-                    const personName =
-                        (person as unknown as { name: string }).name;
+                    const personName = (person as unknown as { name: string })
+                        .name;
                     if (!personName) continue;
 
                     const personRequest: Request = {
@@ -357,8 +370,7 @@ export class SearchProvider {
                                 name: `filter-${tagName}`,
                                 statements: [
                                     {
-                                        comparison:
-                                            FILTER_COMPARISON.Contains,
+                                        comparison: FILTER_COMPARISON.Contains,
                                         field: FILTER_FIELD[
                                             tagName as keyof typeof FILTER_FIELD
                                         ],
@@ -448,9 +460,13 @@ export class SearchProvider {
             // Tag filter search already uses server-side pagination
             return {
                 items: result,
-                metadata: result.length >= pageSize
-                    ? { offset: page + 1, collectedIds: metadata?.collectedIds }
-                    : undefined,
+                metadata:
+                    result.length >= pageSize
+                        ? {
+                              offset: page + 1,
+                              collectedIds: metadata?.collectedIds,
+                          }
+                        : undefined,
             };
         }
 
@@ -460,18 +476,17 @@ export class SearchProvider {
 
         return {
             items: result,
-            metadata: result.length >= pageSize
-                ? { offset: page + 1, collectedIds: metadata?.collectedIds }
-                : undefined,
+            metadata:
+                result.length >= pageSize
+                    ? { offset: page + 1, collectedIds: metadata?.collectedIds }
+                    : undefined,
         };
     }
 
     /**
      * Creates filter statements for person-based recursive search
      */
-    createSearchQuery(
-        value: string,
-    ): Kavita.FilterStatementDto[] {
+    createSearchQuery(value: string): Kavita.FilterStatementDto[] {
         const searchQuery: Kavita.FilterStatementDto[] = [];
         const personFields = [
             FILTER_FIELD.characters,

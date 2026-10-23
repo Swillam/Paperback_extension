@@ -52,8 +52,11 @@ export class ProgressProvider {
         const readChapterIds: Set<string> = new Set();
 
         for (const chapter of chapters) {
-            const pagesRead = chapter.additionalInfo?.pagesRead ?? "0";
-            if (parseInt(pagesRead) === 0) {
+            const pages = parseInt(chapter.additionalInfo?.pages ?? "0");
+            const pagesRead = parseInt(
+                chapter.additionalInfo?.pagesRead ?? "0",
+            );
+            if (pages > 0 && pagesRead >= pages) {
                 readChapterIds.add(chapter.chapterId);
             }
         }
@@ -80,7 +83,7 @@ export class ProgressProvider {
     ): Promise<MangaProgress | undefined> {
         try {
             const result = await fetchJSON<Kavita.Chapter>({
-                url: `${getKavitaUrl()}/api/Reader/continue-point?seriesId=${sourceManga.mangaId}`,
+                url: `${getKavitaUrl()}/Reader/continue-point?seriesId=${sourceManga.mangaId}`,
                 method: "GET",
             });
 
@@ -109,7 +112,7 @@ export class ProgressProvider {
     }
 
     /**
-     * Processes chapter read status updates to MangaDex
+     * Processes chapter read status updates to Kavita
      */
     async processChapterReadActionQueue(
         actions: TrackedMangaChapterReadAction[],
@@ -119,29 +122,32 @@ export class ProgressProvider {
 
         for (const action of actions) {
             const chapterId = action.readChapter?.chapterId;
-            const chapterPageNumber = action.readChapter?.chapNum;
             if (!chapterId) {
                 console.warn(
                     `Skipping chapter read action due to invalid or missing chapterId ('${chapterId ?? "undefined"}') for manga: ${action.sourceManga.mangaId}`,
                 );
+                failedItems.push(action.id);
                 continue;
             }
+            const info = action.readChapter?.additionalInfo;
+            const volumeId = info?.volumeId ?? action.sourceManga.mangaId;
+            const pageNum = parseInt(info?.pages ?? "0");
 
             const mangaId = action.sourceManga.mangaId;
             const libraryId =
                 action.sourceManga.mangaInfo.additionalInfo?.libraryId || 0;
 
             const kavitaURL = getKavitaUrl();
-            const url = `${kavitaURL}/api/Reader/progress`;
+            const url = `${kavitaURL}/Reader/progress`;
 
             const request = {
                 url,
                 method: "POST",
                 body: {
-                    volumeId: mangaId,
-                    chapterId: chapterId,
-                    pageNum: chapterPageNumber,
-                    seriesId: mangaId,
+                    volumeId: parseInt(volumeId),
+                    chapterId: parseInt(chapterId),
+                    pageNum: pageNum,
+                    seriesId: parseInt(mangaId),
                     libraryId: libraryId,
                     bookScrollId: null,
                     lastModifiedUtc: new Date().toISOString(),
@@ -149,13 +155,16 @@ export class ProgressProvider {
             };
 
             try {
-                await Application.scheduleRequest(request);
-                successfulItems.push(mangaId);
+                const [response] = await Application.scheduleRequest(request);
+                if (response.status >= 400) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                successfulItems.push(action.id);
             } catch (error) {
                 console.log(
                     `Error updating read status for ${mangaId}: ${String(error)}`,
                 );
-                failedItems.push(mangaId);
+                failedItems.push(action.id);
             }
         }
 
