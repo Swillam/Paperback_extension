@@ -1,5 +1,4 @@
 import {
-    BasicRateLimiter,
     Chapter,
     ChapterDetails,
     ChapterProviding,
@@ -29,6 +28,7 @@ import {
 } from "@paperback/types";
 import { SettingsForm } from "./forms/SettingsForm";
 import { KavitaInterceptor } from "./KavitaInterceptor";
+import { KavitaRateLimiter } from "./KavitaRateLimiter";
 import { ChapterProvider } from "./providers/ChapterProvider";
 import { CollectionProvider } from "./providers/CollectionProvider";
 import { DiscoverProvider } from "./providers/DiscoverProvider";
@@ -49,7 +49,7 @@ type KavitaImplementation = SettingsFormProviding &
 // Main extension class
 export class KavitaExtension implements KavitaImplementation {
     // Implementation of the main rate limiter
-    mainRateLimiter = new BasicRateLimiter("main", {
+    mainRateLimiter = new KavitaRateLimiter("main", {
         numberOfRequests: 15,
         bufferInterval: 10,
         ignoreImages: true,
