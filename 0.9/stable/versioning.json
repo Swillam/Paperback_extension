@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-10-23T12:02:20.264Z",
+  "buildTime": "2026-10-23T12:03:00.519Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.57",
-    "types": "1.0.0-alpha.53"
+    "types": "1.0.0-alpha.64"
   },
   "repository": {
     "name": "Swillam Extensions (0.9)",
