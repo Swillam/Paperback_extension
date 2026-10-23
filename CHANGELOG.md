@@ -2,6 +2,10 @@
 
 Changes to the Kavita extension, newest first.
 
+## 1.0.2
+
+- Fix: scrolling a list or a search failed with `metadata.collectedIds: Expected value of type JSONValue, found undefined` (introduced by 1.0.1). The metadata of a page now only holds the page number.
+
 ## 1.0.1
 
 - Fix: the lists of a library, On Deck and Latest Updates stopped at one page (20 titles by default). They now keep loading while you scroll, like the other sections.
