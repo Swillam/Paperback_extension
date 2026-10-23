@@ -10,11 +10,12 @@
         "format": "prettier --write '**/*{.md,.yml,.yaml,.json,.js,.ts}' --cache",
         "format:check": "prettier --check '**/*{.md,.yml,.yaml,.json,.js,.ts}' --cache",
         "tsc": "tsc --project tsconfig.json --noEmit",
+        "unit": "vitest run",
         "bundle": "paperback-cli bundle",
         "serve": "paperback-cli serve",
         "logcat": "paperback-cli logcat",
         "dev": "paperback-cli serve --watch",
-        "test": "npm run tsc && npm run lint:check && npm run format:check && npm run bundle",
+        "test": "npm run tsc && npm run unit && npm run lint:check && npm run format:check && npm run bundle",
         "prepare": "husky"
     },
     "devDependencies": {
@@ -27,6 +28,7 @@
         "husky": "^9.1.7",
         "prettier": "3.9.10",
         "typescript": "~6.0.3",
-        "typescript-eslint": "^8.72.0"
+        "typescript-eslint": "^8.72.0",
+        "vitest": "^3.2.7"
     }
 }

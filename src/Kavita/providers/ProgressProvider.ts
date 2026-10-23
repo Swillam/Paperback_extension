@@ -8,6 +8,7 @@ import {
 } from "@paperback/types";
 import { MangaProgressForm } from "../forms/MangaProgressForm";
 import { getKavitaUrl } from "../settings";
+import { isChapterRead } from "../utils/chapters";
 import { fetchJSON } from "../utils/CommonUtils";
 import { toInt } from "../utils/numbers";
 import { ChapterProvider } from "./ChapterProvider";
@@ -53,11 +54,12 @@ export class ProgressProvider {
         const readChapterIds: Set<string> = new Set();
 
         for (const chapter of chapters) {
-            const pages = parseInt(chapter.additionalInfo?.pages ?? "0");
-            const pagesRead = parseInt(
-                chapter.additionalInfo?.pagesRead ?? "0",
-            );
-            if (pages > 0 && pagesRead >= pages) {
+            if (
+                isChapterRead(
+                    toInt(chapter.additionalInfo?.pages),
+                    toInt(chapter.additionalInfo?.pagesRead),
+                )
+            ) {
                 readChapterIds.add(chapter.chapterId);
             }
         }

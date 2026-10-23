@@ -6,6 +6,11 @@ import {
     URL,
 } from "@paperback/types";
 import { getKavitaApiKey, getKavitaUrl } from "../settings";
+import {
+    chapterDate,
+    chapterName,
+    stripFileExtension,
+} from "../utils/chapters";
 import { fetchJSON } from "../utils/CommonUtils";
 
 /**
@@ -37,19 +42,9 @@ export class ChapterProvider {
         let j = 1;
         for (const volume of result) {
             for (const chapter of volume.chapters) {
-                const name =
-                    chapter.number === chapter.range
-                        ? (chapter.titleName ?? "")
-                        : `${chapter.range.replace(`${chapter.number}-`, "")}${chapter.titleName ? ` - ${chapter.titleName}` : ""}`;
-                const title: string = chapter.range.endsWith(".epub")
-                    ? chapter.range.slice(0, -5)
-                    : chapter.range.slice(0, -4);
-
-                const time: Date = new Date(
-                    chapter.releaseDate === "0001-01-01T00:00:00"
-                        ? chapter.created
-                        : chapter.releaseDate,
-                );
+                const name = chapterName(chapter);
+                const title = stripFileExtension(chapter.range);
+                const time = chapterDate(chapter.releaseDate, chapter.created);
 
                 const item: Chapter = {
                     chapterId: `${chapter.id}`,
