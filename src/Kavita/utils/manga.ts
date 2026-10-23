@@ -1,3 +1,5 @@
+import type { ContentRating, SourceManga } from "@paperback/types";
+
 /**
  * Alternative titles of a series: Kavita often repeats the same name in its
  * name, original name, localized name and sort name fields.
@@ -70,4 +72,46 @@ export function buildSynopsis(summary: string, infoLines: string[]): string {
     return [text, infoLines.join("\n")]
         .filter((part) => part !== "")
         .join("\n\n");
+}
+
+/**
+ * Minimal SourceManga for a series coming from a Kavita list (no extra request
+ * per series, unlike getMangaDetails).
+ */
+export function seriesToSourceManga(
+    series: {
+        id: number;
+        name: string;
+        localizedName?: string | null;
+        originalName?: string | null;
+        sortName?: string | null;
+        libraryId: number;
+    },
+    thumbnailUrl: string,
+    contentRating: ContentRating,
+): SourceManga {
+    return {
+        mangaId: `${series.id}`,
+        mangaInfo: {
+            primaryTitle: series.name,
+            secondaryTitles: secondaryTitles(series.name, [
+                series.localizedName,
+                series.originalName,
+                series.sortName,
+            ]),
+            thumbnailUrl,
+            synopsis: "",
+            contentRating,
+            additionalInfo: { libraryId: `${series.libraryId}` },
+        },
+    };
+}
+
+/**
+ * Kavita series ids (numbers) of Paperback manga ids (strings), ignoring invalid ones.
+ */
+export function toSeriesIds(mangas: { mangaId: string }[]): number[] {
+    return mangas
+        .map((manga) => parseInt(manga.mangaId))
+        .filter((id) => Number.isFinite(id));
 }

@@ -1,8 +1,11 @@
+import type { ContentRating } from "@paperback/types";
 import { describe, expect, it } from "vitest";
 import {
     buildSynopsis,
     secondaryTitles,
     seriesInfoLines,
+    seriesToSourceManga,
+    toSeriesIds,
 } from "../utils/manga";
 
 describe("secondaryTitles", () => {
@@ -82,5 +85,40 @@ describe("buildSynopsis", () => {
         expect(buildSynopsis("", ["Year: 2018"])).toBe("Year: 2018");
         expect(buildSynopsis("Text", [])).toBe("Text");
         expect(buildSynopsis("", [])).toBe("");
+    });
+});
+
+describe("seriesToSourceManga", () => {
+    it("builds a minimal SourceManga from a series list item", () => {
+        const manga = seriesToSourceManga(
+            {
+                id: 16,
+                name: "Main",
+                localizedName: "Main",
+                originalName: "Original",
+                sortName: "main",
+                libraryId: 2,
+            },
+            "https://kavita/cover",
+            "SAFE" as ContentRating,
+        );
+        expect(manga.mangaId).toBe("16");
+        expect(manga.mangaInfo.primaryTitle).toBe("Main");
+        expect(manga.mangaInfo.secondaryTitles).toEqual(["Original"]);
+        expect(manga.mangaInfo.thumbnailUrl).toBe("https://kavita/cover");
+        expect(manga.mangaInfo.additionalInfo).toEqual({ libraryId: "2" });
+    });
+});
+
+describe("toSeriesIds", () => {
+    it("converts manga ids and drops invalid ones", () => {
+        expect(
+            toSeriesIds([
+                { mangaId: "16" },
+                { mangaId: "abc" },
+                { mangaId: "7" },
+            ]),
+        ).toEqual([16, 7]);
+        expect(toSeriesIds([])).toEqual([]);
     });
 });

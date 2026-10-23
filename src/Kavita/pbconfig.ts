@@ -13,6 +13,7 @@ export default {
         SourceIntents.SEARCH_RESULT_PROVIDING,
         SourceIntents.CHAPTER_PROVIDING,
         SourceIntents.PROGRESS_PROVIDING,
+        SourceIntents.MANAGED_COLLECTION_PROVIDING,
     ],
     badges: [],
     developers: [
