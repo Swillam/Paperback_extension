@@ -343,6 +343,7 @@ export class MangaProgressForm extends Form {
             console.log(`Error updating manga progress: ${String(error)}`);
             throw new Error(
                 `Failed to update manga progress: ${String(error)}`,
+                { cause: error },
             );
         }
     }

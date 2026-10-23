@@ -290,7 +290,7 @@ export class SearchProvider {
         const tagSearchTiles: SearchResultItem[] = [];
         const titleSearchTiles: SearchResultItem[] = [];
 
-        let result: SearchResultItem[] = [];
+        let result: SearchResultItem[];
 
         // Handle text-based search
         if (typeof query.title === "string" && query.title !== "") {
