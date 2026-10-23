@@ -1,6 +1,7 @@
 // TODO: Rework
 
 import {
+    ButtonRow,
     Form,
     FormSectionElement,
     InputRow,
@@ -15,6 +16,7 @@ import {
     getKavitaPageSize,
     getKavitaUrl,
 } from "../settings";
+import { checkConnection } from "../utils/connection";
 import { State } from "../utils/StateUtil";
 
 export class SettingsForm extends Form {
@@ -35,6 +37,22 @@ class ServerSettingsForm extends Form {
     private apikey: State<string>;
     private pageSize: State<string>;
     private enableRecursiveSearch: State<boolean>;
+    private connectionStatus = "";
+
+    // Gives Application.Selector the concrete type instead of the polymorphic `this`
+    private static asSelf(form: ServerSettingsForm): ServerSettingsForm {
+        return form;
+    }
+
+    async testConnection(): Promise<void> {
+        this.connectionStatus = "Testing...";
+        this.reloadForm();
+        this.connectionStatus = await checkConnection(
+            getKavitaUrl(),
+            getKavitaApiKey(),
+        );
+        this.reloadForm();
+    }
 
     constructor() {
         super();
@@ -78,8 +96,23 @@ class ServerSettingsForm extends Form {
                     value: this.apikey.value,
                     onValueChange: this.apikey.selector,
                 }),
+                ButtonRow("testConnection", {
+                    title: "Test Connection",
+                    onSelect: Application.Selector(
+                        ServerSettingsForm.asSelf(this),
+                        "testConnection",
+                    ),
+                }),
+                ...(this.connectionStatus === ""
+                    ? []
+                    : [
+                          LabelRow("connectionStatus", {
+                              title: "Status",
+                              subtitle: this.connectionStatus,
+                          }),
+                      ]),
                 InputRow("pageSize", {
-                    title: "Page Size",
+                    title: "Page Size (1-200)",
                     value: this.pageSize.value,
                     onValueChange: this.pageSize.selector,
                 }),

@@ -9,6 +9,7 @@ import {
 import { MangaProgressForm } from "../forms/MangaProgressForm";
 import { getKavitaUrl } from "../settings";
 import { fetchJSON } from "../utils/CommonUtils";
+import { toInt } from "../utils/numbers";
 import { ChapterProvider } from "./ChapterProvider";
 
 /**
@@ -134,8 +135,9 @@ export class ProgressProvider {
             const pageNum = parseInt(info?.pages ?? "0");
 
             const mangaId = action.sourceManga.mangaId;
-            const libraryId =
-                action.sourceManga.mangaInfo.additionalInfo?.libraryId || 0;
+            const libraryId = toInt(
+                action.sourceManga.mangaInfo.additionalInfo?.libraryId,
+            );
 
             const kavitaURL = getKavitaUrl();
             const url = `${kavitaURL}/Reader/progress`;
