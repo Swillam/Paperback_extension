@@ -16,7 +16,7 @@ Client extension to read a self-hosted [Kavita](https://www.kavitareader.com) li
 - Series updates checked in batches
 
 > [!NOTE]
-> The extension is in alpha and was tested with Kavita 0.9. The settings recommend Kavita 0.8 or newer. See the [changelog](CHANGELOG.md).
+> Tested with Kavita 0.9. Kavita 0.8 or newer is recommended (Test Connection tells you if your server is older). See the [changelog](CHANGELOG.md).
 
 #### Setup
 

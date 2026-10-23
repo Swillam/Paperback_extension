@@ -1,6 +1,18 @@
 # Changelog
 
-Changes to the Kavita extension, newest first. The extension is in alpha: it follows the alpha of Paperback itself.
+Changes to the Kavita extension, newest first.
+
+## 1.0.0
+
+First stable version. It gathers everything from the alpha releases below, plus:
+
+- **Settings** are split by theme (Server, Home, Search & Lists, Updates) with a Reset Settings button that keeps the server and the API key. The API key is hidden.
+- Changing a Home setting reloads Discover by itself, and the order of the Discover groups can be changed.
+- **Update settings**: optimized updates on/off, skip by unread chapters, new chapters or publication status.
+- A request that hits an expired sign-in is sent once more instead of failing, and failed progress writes are reported.
+- Test Connection recommends Kavita 0.8 or newer when the server is older.
+- The page size is set with a stepper.
+- Documentation: this changelog and an updated README.
 
 ## 1.0.0-alpha.19
 
