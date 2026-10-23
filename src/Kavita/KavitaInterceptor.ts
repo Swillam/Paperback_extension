@@ -1,12 +1,15 @@
 import { PaperbackInterceptor, Request, Response } from "@paperback/types";
 import { getKavitaApiKey, getKavitaUrl } from "./settings";
 import { fetchJSON } from "./utils/CommonUtils";
+import { isImageRequest } from "./utils/images";
 
 // Intercepts all the requests and responses and allows you to make changes to them
 export class KavitaInterceptor extends PaperbackInterceptor {
     authorization = "";
     // url + api key the cached token was issued for
     private authorizationKey = "";
+    // Sign-in in progress, shared by the requests that arrive meanwhile
+    private pendingAuthorization: Promise<string> | undefined;
 
     async isServerAvailable(): Promise<boolean> {
         await this.getAuthorizationString();
@@ -18,16 +21,24 @@ export class KavitaInterceptor extends PaperbackInterceptor {
         const currentKey = `${getKavitaUrl()}|${getKavitaApiKey()}`;
         if (currentKey !== this.authorizationKey) {
             this.authorization = "";
+            this.pendingAuthorization = undefined;
             this.authorizationKey = currentKey;
         }
 
-        if (this.authorization === "") {
-            const token = await this.getAuthorization();
+        if (this.authorization !== "") return this.authorization;
 
-            this.authorization = token;
-        }
+        // A screen starts dozens of requests at once: sign in a single time and
+        // let them all wait for it, instead of one sign-in per request
+        this.pendingAuthorization ??= this.getAuthorization()
+            .then((token) => {
+                this.authorization = token;
+                return token;
+            })
+            .finally(() => {
+                this.pendingAuthorization = undefined;
+            });
 
-        return this.authorization;
+        return this.pendingAuthorization;
     }
 
     async getAuthorization(): Promise<string> {
@@ -55,16 +66,21 @@ export class KavitaInterceptor extends PaperbackInterceptor {
             return request;
         }
 
+        // Page images get a unique FAKE*...*REAL* url: restore the real one first
+        if (request.url.startsWith("FAKE*")) {
+            request.url = request.url.split("*REAL*").pop() ?? "";
+        }
+
+        // Images carry the API key in their url: they must not wait for, or
+        // fail with, a sign-in they do not need
+        if (isImageRequest(request.url)) return request;
+
         request.headers = {
             ...request.headers,
             "Content-Type": "application/json",
 
             Authorization: await this.getAuthorizationString(),
         };
-
-        if (request.url.startsWith("FAKE*")) {
-            request.url = request.url.split("*REAL*").pop() ?? "";
-        }
 
         return request;
     }
