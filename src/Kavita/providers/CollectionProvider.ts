@@ -12,6 +12,7 @@ import {
     WANT_TO_READ_ID,
 } from "../utils/collections";
 import { fetchJSON, sendChecked } from "../utils/CommonUtils";
+import { coverUrl } from "../utils/images";
 import { seriesToSourceManga, toSeriesIds } from "../utils/manga";
 
 const PAGE_SIZE = 100;
@@ -53,7 +54,7 @@ export class CollectionProvider {
                 mangas.push(
                     seriesToSourceManga(
                         item,
-                        `${kavitaUrl}/image/series-cover?seriesId=${item.id}&apiKey=${apiKey}`,
+                        coverUrl(kavitaUrl, item.id, apiKey),
                         ContentRating.EVERYONE,
                     ),
                 );

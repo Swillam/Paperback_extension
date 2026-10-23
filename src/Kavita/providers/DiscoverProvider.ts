@@ -20,7 +20,9 @@ import {
     FILTER_COMPARISON,
     FILTER_FIELD,
 } from "../utils/filters";
+import { coverUrl } from "../utils/images";
 import { nextPageMetadata, pageFromMetadata } from "../utils/paging";
+import { LIST_CONTENT_RATING } from "../utils/rating";
 import {
     parseSmartFilterSectionId,
     SERIES_ENTITY_TYPE,
@@ -271,7 +273,8 @@ export class DiscoverProvider {
                 type: "simpleCarouselItem",
                 mangaId: `${manga.id}`,
                 title: manga.name,
-                imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${apiKey}`,
+                imageUrl: coverUrl(kavitaURL, manga.id, apiKey),
+                contentRating: LIST_CONTENT_RATING,
             })),
             metadata: nextPageMetadata(series.length, pageSize, page),
         };
@@ -324,11 +327,10 @@ export class DiscoverProvider {
         return {
             items: mangas.map((x) => ({
                 type: "prominentCarouselItem",
-                imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
+                imageUrl: coverUrl(kavitaURL, x.id, getKavitaApiKey()),
+                contentRating: LIST_CONTENT_RATING,
                 mangaId: `${x.id}`,
                 title: x.name,
-                supertitle: undefined,
-                metadata: undefined,
             })),
             metadata: nextPageMetadata(mangas.length, pageSize, page),
         };
@@ -354,11 +356,10 @@ export class DiscoverProvider {
         return {
             items: json.map((x) => ({
                 type: "featuredCarouselItem",
-                imageUrl: `${kavitaURL}/image/series-cover?seriesId=${x.id}&apiKey=${getKavitaApiKey()}`,
+                imageUrl: coverUrl(kavitaURL, x.id, getKavitaApiKey()),
+                contentRating: LIST_CONTENT_RATING,
                 mangaId: `${x.id}`,
                 title: x.name,
-                supertitle: undefined,
-                metadata: undefined,
             })),
             metadata: nextPageMetadata(json.length, pageSize, page),
         };
@@ -388,7 +389,7 @@ export class DiscoverProvider {
         for (const serie of series) {
             const mangaId = serie.seriesId;
 
-            const image = `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${getKavitaApiKey()}`;
+            const image = coverUrl(kavitaURL, mangaId, getKavitaApiKey());
             const title = serie.seriesName;
             const subtitle = serie.title;
             items.push({
@@ -397,6 +398,7 @@ export class DiscoverProvider {
                 title: title,
                 subtitle: subtitle,
                 imageUrl: image,
+                contentRating: LIST_CONTENT_RATING,
                 publishDate: new Date(serie.created),
                 type: "chapterUpdatesCarouselItem",
             });
@@ -440,11 +442,12 @@ export class DiscoverProvider {
         for (const manga of json) {
             const mangaId = manga.id;
             const title = manga.name;
-            const image = `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`;
+            const image = coverUrl(kavitaURL, mangaId, kavitaAPI);
             items.push({
                 mangaId: `${mangaId}`,
                 title: title,
                 imageUrl: image,
+                contentRating: LIST_CONTENT_RATING,
                 type: "simpleCarouselItem",
             });
         }

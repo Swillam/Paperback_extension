@@ -1,6 +1,7 @@
 import { ContentRating, SourceManga, Tag, TagSection } from "@paperback/types";
 import { getKavitaApiKey, getKavitaUrl } from "../settings";
 import { fetchJSON, KAVITA_PUBLICATION_STATUS } from "../utils/CommonUtils";
+import { coverUrl } from "../utils/images";
 import {
     buildSynopsis,
     secondaryTitles,
@@ -65,7 +66,7 @@ export class MangaProvider {
                     seriesResult.originalName,
                     seriesResult.sortName,
                 ]),
-                thumbnailUrl: `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`,
+                thumbnailUrl: coverUrl(kavitaURL, mangaId, kavitaAPI),
                 author: authors.join(", "),
                 artist: artists.join(", "),
                 synopsis: buildSynopsis(
