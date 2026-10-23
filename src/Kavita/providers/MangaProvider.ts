@@ -84,6 +84,13 @@ export class MangaProvider {
                     /*artworkUrls.length > 0 ? artworkUrls :*/ undefined,
                 additionalInfo: {
                     libraryId: `${seriesResult.libraryId}`,
+                    // Lets the update check skip the series until a chapter is added
+                    ...(seriesResult.lastChapterAddedUtc
+                        ? {
+                              latestUploadedChapter:
+                                  seriesResult.lastChapterAddedUtc,
+                          }
+                        : {}),
                 },
             },
         };

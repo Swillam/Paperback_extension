@@ -1,6 +1,3 @@
-// TODO:
-// - Make getChapterDetails only return new chapters
-
 import {
     BasicRateLimiter,
     Chapter,

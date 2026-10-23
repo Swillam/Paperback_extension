@@ -335,6 +335,7 @@ declare namespace Kavita {
         pagesRead: number;
         latestReadDate: string;
         lastChapterAdded: string;
+        lastChapterAddedUtc: string;
         userRating: number;
         hasUserRated: boolean;
         format: number;

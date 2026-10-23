@@ -13,6 +13,10 @@ import {
 } from "../utils/chapters";
 import { fetchJSON } from "../utils/CommonUtils";
 import { TtlCache } from "../utils/TtlCache";
+import { chunk, shouldRefreshChapters } from "../utils/updates";
+
+// Series checked per request when looking for new chapters
+const UPDATE_CHECK_BATCH_SIZE = 100;
 
 const CHAPTER_CACHE_TTL_MS = 10_000;
 
@@ -141,48 +145,48 @@ export class ChapterProvider {
      */
     async processTitlesForUpdates(updateManager: UpdateManager): Promise<void> {
         const sourceManga = updateManager.getQueuedItems();
-
-        const mangaMap = new Map<string, SourceManga>();
-        const mangaIds: string[] = [];
+        const mangaMap = new Map(sourceManga.map((m) => [m.mangaId, m]));
         const skipUpdate: string[] = [];
 
-        for (const manga of sourceManga) {
-            mangaIds.push(manga.mangaId);
-            mangaMap.set(manga.mangaId, manga);
-        }
+        // One request per batch of series instead of one per series
+        for (const batch of chunk(
+            [...mangaMap.keys()],
+            UPDATE_CHECK_BATCH_SIZE,
+        )) {
+            const seriesIds = batch
+                .map((id) => parseInt(id))
+                .filter((id) => Number.isFinite(id));
 
-        for (const manga of sourceManga) {
-            const request = {
-                url: new URL(getKavitaUrl())
-                    .addPathComponent("Series")
-                    .addPathComponent("volumes")
-                    .setQueryItem("seriesId", manga.mangaId)
-                    .toString(),
-                method: "GET",
-            };
-            const result = await fetchJSON<Kavita.ChapterResponse>(request);
-            if (result) {
-                const latestApiChapter = result[0]?.lastModifiedUtc;
-                const latestStoredChapter =
-                    manga.mangaInfo?.additionalInfo?.latestUploadedChapter;
+            let series: Kavita.SerieResponse[];
+            try {
+                series = await fetchJSON<Kavita.SerieResponse[]>({
+                    url: `${getKavitaUrl()}/Series/series-by-ids`,
+                    method: "POST",
+                    body: JSON.stringify({ seriesIds }),
+                });
+            } catch (error) {
+                // Let Paperback's default flow check these series
+                console.log(
+                    `Update check failed for a batch: ${String(error)}`,
+                );
+                continue;
+            }
 
-                let skipUnread = false;
-                if (
-                    manga.unreadChapterCount !== undefined &&
-                    manga.chapterCount
-                ) {
-                    skipUnread = manga.unreadChapterCount > 0;
-                }
+            // Kavita leaves out the series that do not exist or are not accessible
+            const apiMarkers = new Map(
+                series.map((s) => [`${s.id}`, s.lastChapterAddedUtc]),
+            );
 
-                if (
-                    latestApiChapter &&
-                    latestApiChapter !== latestStoredChapter &&
-                    !skipUnread
-                ) {
-                    continue;
-                } else {
-                    skipUpdate.push(manga.mangaId);
-                }
+            for (const mangaId of batch) {
+                const manga = mangaMap.get(mangaId);
+                const refresh = shouldRefreshChapters({
+                    storedMarker:
+                        manga?.mangaInfo?.additionalInfo?.latestUploadedChapter,
+                    apiMarker: apiMarkers.get(mangaId),
+                    unreadChapterCount: manga?.unreadChapterCount,
+                    chapterCount: manga?.chapterCount,
+                });
+                if (!refresh) skipUpdate.push(mangaId);
             }
         }
 
