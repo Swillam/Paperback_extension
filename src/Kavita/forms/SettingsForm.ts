@@ -11,10 +11,13 @@ import {
     ToggleRow,
 } from "@paperback/types";
 import {
+    DISCOVER_SECTION_TOGGLES,
+    getDiscoverSectionStateKey,
     getKavitaApiKey,
     getKavitaEnableRecursiveSearch,
     getKavitaPageSize,
     getKavitaUrl,
+    isDiscoverSectionEnabled,
 } from "../settings";
 import { checkConnection } from "../utils/connection";
 import { State } from "../utils/StateUtil";
@@ -38,6 +41,14 @@ class ServerSettingsForm extends Form {
     private pageSize: State<string>;
     private enableRecursiveSearch: State<boolean>;
     private connectionStatus = "";
+    private discoverToggles = DISCOVER_SECTION_TOGGLES.map((section) => ({
+        ...section,
+        state: new State<boolean>(
+            this,
+            getDiscoverSectionStateKey(section.id),
+            isDiscoverSectionEnabled(section.id),
+        ),
+    }));
 
     // Gives Application.Selector the concrete type instead of the polymorphic `this`
     private static asSelf(form: ServerSettingsForm): ServerSettingsForm {
@@ -117,6 +128,16 @@ class ServerSettingsForm extends Form {
                     onValueChange: this.pageSize.selector,
                 }),
             ]),
+            Section(
+                "discover",
+                this.discoverToggles.map((section) =>
+                    ToggleRow(`discover_${section.id}`, {
+                        title: section.title,
+                        value: section.state.value,
+                        onValueChange: section.state.selector,
+                    }),
+                ),
+            ),
             Section("Search", [
                 ToggleRow("enableRecursiveSearch", {
                     title: "Enable Recursive Search",

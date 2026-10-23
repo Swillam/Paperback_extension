@@ -58,3 +58,23 @@ export function setKavitaEnableRecursiveSearch(
         "kavita_enable_recursive_search",
     );
 }
+
+export const DISCOVER_SECTION_TOGGLES = [
+    { id: "ondeck", title: "On Deck" },
+    { id: "latest_updates", title: "Latest Updates" },
+    { id: "recently_added", title: "Recently Added" },
+    { id: "tag_sections", title: "Tag Sections" },
+    { id: "libraries", title: "Library Sections" },
+] as const;
+
+export function getDiscoverSectionStateKey(id: string): string {
+    return `kavita_show_${id}`;
+}
+
+/**
+ * Whether a discover section is shown (all of them are by default)
+ */
+export function isDiscoverSectionEnabled(id: string): boolean {
+    const value = Application.getState(getDiscoverSectionStateKey(id));
+    return typeof value === "boolean" ? value : true;
+}
