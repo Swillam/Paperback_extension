@@ -10,6 +10,11 @@ updates:
       labels:
           - chore
           - dependencies
+      ignore:
+          # typescript-eslint does not support TypeScript 7 yet
+          - dependency-name: typescript
+            update-types:
+                - version-update:semver-major
       groups:
           security:
               applies-to: security-updates
