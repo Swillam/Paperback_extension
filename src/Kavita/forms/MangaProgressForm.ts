@@ -9,6 +9,7 @@ import {
     SourceManga,
 } from "@paperback/types";
 import { getKavitaUrl } from "../settings";
+import { sendChecked } from "../utils/CommonUtils";
 import { toInt } from "../utils/numbers";
 
 /**
@@ -294,7 +295,7 @@ export class MangaProgressForm extends Form {
                         }),
                         method: "POST",
                     };
-                    await Application.scheduleRequest(markUnreadRequest);
+                    await sendChecked(markUnreadRequest);
                     break;
                 }
 
@@ -306,7 +307,7 @@ export class MangaProgressForm extends Form {
                         }),
                         method: "POST",
                     };
-                    await Application.scheduleRequest(markReadRequest);
+                    await sendChecked(markReadRequest);
                     break;
                 }
 
@@ -335,7 +336,7 @@ export class MangaProgressForm extends Form {
                                 },
                                 method: "POST",
                             };
-                            await Application.scheduleRequest(markReadRequest);
+                            await sendChecked(markReadRequest);
                         }
                     }
                     break;
