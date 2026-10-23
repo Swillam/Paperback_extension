@@ -2,6 +2,12 @@
 
 Changes to the Kavita extension, newest first.
 
+## 1.0.1
+
+- Fix: the lists of a library, On Deck and Latest Updates stopped at one page (20 titles by default). They now keep loading while you scroll, like the other sections.
+- Fix: a title search could never show more than 15 series (a limit of Kavita's search). It now finds every series whose name contains the text, in the sort you chose.
+- The search by people, genre or tag reads up to 1000 series instead of one page.
+
 ## 1.0.0
 
 First stable version. It gathers everything from the alpha releases below, plus:
