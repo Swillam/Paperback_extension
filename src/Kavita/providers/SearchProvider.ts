@@ -4,6 +4,7 @@ import {
     SearchFilter,
     SearchQuery,
     SearchResultItem,
+    SortingOption,
     Tag,
     TagSection,
 } from "@paperback/types";
@@ -15,12 +16,16 @@ import {
 } from "../settings";
 import { fetchJSON } from "../utils/CommonUtils";
 import {
+    ANY_VALUE,
     buildFilterPlan,
     FILTER_COMBINATION,
     FILTER_COMPARISON,
     FILTER_FIELD,
+    PUBLICATION_STATUS_OPTIONS,
+    READ_STATE_OPTIONS,
     type FilterGroup,
 } from "../utils/filters";
+import { getSortingOptionList, kavitaSortFor } from "../utils/sorting";
 
 // Upper bound when fetching the series to remove from a tag search
 const MAX_EXCLUDED_SERIES = 1000;
@@ -103,6 +108,43 @@ export class SearchProvider {
     async getSearchFilters(): Promise<SearchFilter[]> {
         const filters: SearchFilter[] = [];
 
+        const libraries = await fetchJSON<Kavita.AllLibraries>({
+            url: `${getKavitaUrl()}/Library/libraries`,
+            method: "GET",
+        });
+        filters.push({
+            id: "library",
+            type: "dropdown",
+            options: [
+                { id: ANY_VALUE, value: "Any" },
+                ...libraries
+                    .filter((library) => library.type !== 2)
+                    .map((library) => ({
+                        id: `${library.id}`,
+                        value: library.name,
+                    })),
+            ],
+            value: ANY_VALUE,
+            title: "Library",
+        });
+        filters.push({
+            id: "status",
+            type: "dropdown",
+            options: [
+                { id: ANY_VALUE, value: "Any" },
+                ...PUBLICATION_STATUS_OPTIONS,
+            ],
+            value: ANY_VALUE,
+            title: "Publication Status",
+        });
+        filters.push({
+            id: "readState",
+            type: "dropdown",
+            options: [{ id: ANY_VALUE, value: "Any" }, ...READ_STATE_OPTIONS],
+            value: ANY_VALUE,
+            title: "Read State",
+        });
+
         filters.push({
             id: "includeOperator",
             type: "dropdown",
@@ -142,13 +184,19 @@ export class SearchProvider {
         return filters;
     }
 
+    async getSortingOptions(): Promise<SortingOption[]> {
+        return getSortingOptionList();
+    }
+
     /**
      * Executes manga search with filters and returns results
      */
     async getSearchResults(
         query: SearchQuery,
         metadata: Kavita.Metadata,
+        sortingOption?: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
+        const sort = kavitaSortFor(sortingOption?.id);
         const kavitaAPI = getKavitaApiKey();
         const kavitaURL = getKavitaUrl();
         const pageSize: number = getKavitaPageSizeNumber();
@@ -279,13 +327,26 @@ export class SearchProvider {
         }
 
         // Handle tag/filter-based search
-        const plan = buildFilterPlan(query);
+        let plan = buildFilterPlan(query);
+
+        // Nothing typed and nothing selected: browse the whole library with the chosen sort
+        if (
+            !plan.main &&
+            (typeof query.title !== "string" || query.title === "")
+        ) {
+            plan = {
+                main: { statements: [], combination: FILTER_COMBINATION.And },
+                excluded: undefined,
+                required: undefined,
+            };
+        }
 
         if (plan.main) {
             const filterResult = await this.runFilter(
                 plan.main,
                 page,
                 pageSize,
+                sort,
             );
 
             // Series that must be removed (include/exclude operators that
@@ -296,13 +357,27 @@ export class SearchProvider {
                     plan.excluded,
                     0,
                     MAX_EXCLUDED_SERIES,
+                    sort,
                 );
                 for (const manga of excludedResult)
                     excludedIds.add(`${manga.id}`);
             }
 
+            // Series that must also match the dropdown filters
+            let requiredIds: Set<string> | undefined;
+            if (plan.required) {
+                const requiredResult = await this.runFilter(
+                    plan.required,
+                    0,
+                    MAX_EXCLUDED_SERIES,
+                    sort,
+                );
+                requiredIds = new Set(requiredResult.map((m) => `${m.id}`));
+            }
+
             for (const manga of filterResult) {
                 if (!manga.name || excludedIds.has(`${manga.id}`)) continue;
+                if (requiredIds && !requiredIds.has(`${manga.id}`)) continue;
                 tagSearchTiles.push({
                     title: manga.name,
                     imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
@@ -358,6 +433,7 @@ export class SearchProvider {
         group: FilterGroup,
         page: number,
         pageSize: number,
+        sort: { sortField: number; isAscending: boolean },
     ): Promise<Kavita.SerieResponse[]> {
         const request: Request = {
             url: `${getKavitaUrl()}/Series/all-v2?PageNumber=${page + 1}&PageSize=${pageSize}`,
@@ -366,10 +442,7 @@ export class SearchProvider {
                 name: "filter-tags",
                 statements: group.statements,
                 combination: group.combination,
-                sortOptions: {
-                    sortField: 1,
-                    isAscending: true,
-                },
+                sortOptions: sort,
                 limitTo: 0,
             }),
             method: "POST",

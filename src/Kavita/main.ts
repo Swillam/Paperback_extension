@@ -24,6 +24,7 @@ import {
     SearchResultItem,
     SearchResultsProviding,
     SettingsFormProviding,
+    SortingOption,
     SourceManga,
     TagSection,
     TrackedMangaChapterReadAction,
@@ -91,8 +92,17 @@ export class KavitaExtension implements KavitaImplementation {
     async getSearchResults(
         query: SearchQuery,
         metadata: Kavita.Metadata,
+        sortingOption?: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
-        return this.searchProvider.getSearchResults(query, metadata);
+        return this.searchProvider.getSearchResults(
+            query,
+            metadata,
+            sortingOption,
+        );
+    }
+
+    async getSortingOptions(): Promise<SortingOption[]> {
+        return this.searchProvider.getSortingOptions();
     }
 
     async getSearchTags(): Promise<TagSection[]> {

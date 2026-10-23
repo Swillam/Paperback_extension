@@ -6,6 +6,7 @@ import {
     FILTER_COMBINATION,
     FILTER_COMPARISON,
     FILTER_FIELD,
+    parseConstraints,
     parseFilters,
 } from "../utils/filters";
 
@@ -220,6 +221,110 @@ describe("buildFilterPlan", () => {
         );
         expect(plan.excluded).toEqual({
             statements: [stmt(contains, "3"), stmt(contains, "4")],
+            combination: FILTER_COMBINATION.And,
+        });
+    });
+});
+
+describe("parseConstraints", () => {
+    const dropdowns = (values: Record<string, string>): SearchQuery =>
+        query(Object.entries(values).map(([id, value]) => ({ id, value })));
+
+    it("ignores 'any' and unknown values", () => {
+        expect(
+            parseConstraints(
+                dropdowns({ library: "any", status: "any", readState: "any" }),
+            ),
+        ).toEqual([]);
+        expect(
+            parseConstraints(dropdowns({ library: "abc", readState: "x" })),
+        ).toEqual([]);
+    });
+
+    it("builds library and status statements", () => {
+        expect(
+            parseConstraints(dropdowns({ library: "2", status: "2" })),
+        ).toEqual([
+            {
+                comparison: FILTER_COMPARISON.Equal,
+                field: FILTER_FIELD.libraries,
+                value: "2",
+            },
+            {
+                comparison: FILTER_COMPARISON.Equal,
+                field: FILTER_FIELD.publicationStatus,
+                value: "2",
+            },
+        ]);
+    });
+
+    it("maps the read states to read progress percentages", () => {
+        const progress = (comparison: number, value: string) => ({
+            comparison,
+            field: FILTER_FIELD.readProgress,
+            value,
+        });
+        expect(parseConstraints(dropdowns({ readState: "unread" }))).toEqual([
+            progress(FILTER_COMPARISON.Equal, "0"),
+        ]);
+        expect(parseConstraints(dropdowns({ readState: "reading" }))).toEqual([
+            progress(FILTER_COMPARISON.GreaterThan, "0"),
+            progress(FILTER_COMPARISON.LessThan, "100"),
+        ]);
+        expect(parseConstraints(dropdowns({ readState: "read" }))).toEqual([
+            progress(FILTER_COMPARISON.Equal, "100"),
+        ]);
+    });
+});
+
+describe("buildFilterPlan with dropdown constraints", () => {
+    const library = { id: "library", value: "2" };
+    const libraryStatement = {
+        comparison: FILTER_COMPARISON.Equal,
+        field: FILTER_FIELD.libraries,
+        value: "2",
+    };
+
+    it("runs the constraints alone when no tag is selected", () => {
+        const plan = buildFilterPlan(query([library]));
+        expect(plan.main).toEqual({
+            statements: [libraryStatement],
+            combination: FILTER_COMBINATION.And,
+        });
+        expect(plan.required).toBeUndefined();
+    });
+
+    it("merges them in an ANDed request", () => {
+        const plan = buildFilterPlan(
+            query([
+                library,
+                { id: "tags-genres", value: { "genres-1:A": "included" } },
+            ]),
+        );
+        expect(plan.main?.combination).toBe(FILTER_COMBINATION.And);
+        expect(plan.main?.statements).toContainEqual(libraryStatement);
+        expect(plan.main?.statements).toHaveLength(2);
+        expect(plan.required).toBeUndefined();
+    });
+
+    it("keeps them apart when the includes are ORed", () => {
+        const plan = buildFilterPlan(
+            query([
+                library,
+                { id: "includeOperator", value: "OR" },
+                {
+                    id: "tags-genres",
+                    value: {
+                        "genres-1:A": "included",
+                        "genres-2:B": "included",
+                    },
+                },
+            ]),
+        );
+        expect(plan.main?.combination).toBe(FILTER_COMBINATION.Or);
+        expect(plan.main?.statements).toHaveLength(2);
+        expect(plan.required).toEqual({
+            statements: [libraryStatement],
             combination: FILTER_COMBINATION.And,
         });
     });
