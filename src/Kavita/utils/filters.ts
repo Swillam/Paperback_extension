@@ -2,6 +2,7 @@ import type { SearchQuery } from "@paperback/types";
 
 // Kavita FilterField enum values
 export const FILTER_FIELD = {
+    seriesName: 1,
     publicationStatus: 2,
     tags: 6,
     characters: 9,
@@ -25,6 +26,8 @@ export const FILTER_COMPARISON = {
     LessThan: 3,
     Contains: 5,
     MustContains: 6,
+    // "contains" for names: case-insensitive, matches inside the name
+    Matches: 7,
     NotContains: 8,
 } as const;
 

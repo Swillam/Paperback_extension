@@ -27,8 +27,8 @@ import {
 } from "../utils/filters";
 import { getSortingOptionList, kavitaSortFor } from "../utils/sorting";
 
-// Upper bound when fetching the series to remove from a tag search
-const MAX_EXCLUDED_SERIES = 1000;
+// Upper bound when fetching series in a single request (search and exclusions)
+const MAX_FETCHED_SERIES = 1000;
 
 /**
  * Handles manga search functionality and filters
@@ -220,8 +220,26 @@ export class SearchProvider {
             const titleResult =
                 await fetchJSON<Kavita.SearchResponse>(titleRequest);
 
+            // Search/search stops at 15 series: the series whose name contains
+            // the text are asked from the filter endpoint, without that limit
+            // (and in the chosen sort). The ones Search/search found by another
+            // name (original, localized...) come after.
+            for (const manga of await this.findSeriesByName(
+                query.title,
+                sort,
+            )) {
+                if (!manga.name) continue;
+                titleSearchIds.push(`${manga.id}`);
+                titleSearchTiles.push({
+                    title: manga.name,
+                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                    mangaId: `${manga.id}`,
+                });
+            }
+
             for (const manga of titleResult?.series ?? []) {
                 if (!manga.name) continue;
+                if (titleSearchIds.includes(`${manga.seriesId}`)) continue;
                 titleSearchIds.push(`${manga.seriesId}`);
                 titleSearchTiles.push({
                     title: manga.name,
@@ -237,7 +255,7 @@ export class SearchProvider {
                     if (!personId) continue;
 
                     const personRequest: Request = {
-                        url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
+                        url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${MAX_FETCHED_SERIES}`,
                         body: JSON.stringify({
                             id: 0,
                             name: "filter-persons",
@@ -282,7 +300,7 @@ export class SearchProvider {
                         if (!tagId) continue;
 
                         const tagRequest: Request = {
-                            url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
+                            url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${MAX_FETCHED_SERIES}`,
                             body: JSON.stringify({
                                 id: 0,
                                 name: `filter-${tagName}`,
@@ -356,7 +374,7 @@ export class SearchProvider {
                 const excludedResult = await this.runFilter(
                     plan.excluded,
                     0,
-                    MAX_EXCLUDED_SERIES,
+                    MAX_FETCHED_SERIES,
                     sort,
                 );
                 for (const manga of excludedResult)
@@ -369,7 +387,7 @@ export class SearchProvider {
                 const requiredResult = await this.runFilter(
                     plan.required,
                     0,
-                    MAX_EXCLUDED_SERIES,
+                    MAX_FETCHED_SERIES,
                     sort,
                 );
                 requiredIds = new Set(requiredResult.map((m) => `${m.id}`));
@@ -424,6 +442,36 @@ export class SearchProvider {
                     ? { offset: page + 1, collectedIds: metadata?.collectedIds }
                     : undefined,
         };
+    }
+
+    /**
+     * Series whose name contains the text (all of them, up to the fetch limit)
+     */
+    private async findSeriesByName(
+        text: string,
+        sort: { sortField: number; isAscending: boolean },
+    ): Promise<Kavita.SerieResponse[]> {
+        try {
+            return await this.runFilter(
+                {
+                    statements: [
+                        {
+                            comparison: FILTER_COMPARISON.Matches,
+                            field: FILTER_FIELD.seriesName,
+                            value: text,
+                        },
+                    ],
+                    combination: FILTER_COMBINATION.And,
+                },
+                0,
+                MAX_FETCHED_SERIES,
+                sort,
+            );
+        } catch (error) {
+            // Keep the Search/search results if this Kavita cannot filter on names
+            console.log(`Name search failed: ${String(error)}`);
+            return [];
+        }
     }
 
     /**
