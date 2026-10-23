@@ -10,7 +10,6 @@ import {
 import {
     getDiscoverOrder,
     getKavitaApiKey,
-    getKavitaPageSize,
     getKavitaPageSizeNumber,
     getKavitaUrl,
     isDiscoverSectionEnabled,
@@ -21,6 +20,7 @@ import {
     FILTER_COMPARISON,
     FILTER_FIELD,
 } from "../utils/filters";
+import { nextPageMetadata, pageFromMetadata } from "../utils/paging";
 import {
     parseSmartFilterSectionId,
     SERIES_ENTITY_TYPE,
@@ -180,11 +180,11 @@ export class DiscoverProvider {
         const sectionId = section.id;
 
         if (sectionId === "ondeck") {
-            return this.getMangaListDiscoverSectionItems(section);
+            return this.getMangaListDiscoverSectionItems(section, metadata);
         }
 
         if (sectionId === "latest_updates") {
-            return this.getLatestUpdatesDiscoverSectionItems();
+            return this.getLatestUpdatesDiscoverSectionItems(metadata);
         }
 
         if (sectionId === "recently_added") {
@@ -199,7 +199,7 @@ export class DiscoverProvider {
             return this.getSmartFilterSectionItems(section, metadata);
         }
 
-        return this.getLibrarySection(section);
+        return this.getLibrarySection(section, metadata);
     }
 
     /**
@@ -273,10 +273,7 @@ export class DiscoverProvider {
                 title: manga.name,
                 imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${apiKey}`,
             })),
-            metadata:
-                series.length >= pageSize
-                    ? { offset: page, collectedIds: metadata?.collectedIds }
-                    : undefined,
+            metadata: nextPageMetadata(series.length, pageSize, page, metadata),
         };
     }
 
@@ -285,13 +282,15 @@ export class DiscoverProvider {
      */
     async getLibrarySection(
         section: DiscoverSection,
+        metadata?: Kavita.Metadata,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const kavitaURL = getKavitaUrl();
-        const pageSize = getKavitaPageSize();
+        const pageSize = getKavitaPageSizeNumber();
+        const page = pageFromMetadata(metadata);
 
         const request: Request = {
             // The libraryId query parameter is ignored by Kavita: filter with a statement
-            url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
+            url: `${kavitaURL}/Series/all-v2?PageNumber=${page}&PageSize=${pageSize}`,
             body: JSON.stringify({
                 id: 0,
                 name: "all",
@@ -331,18 +330,20 @@ export class DiscoverProvider {
                 supertitle: undefined,
                 metadata: undefined,
             })),
-            metadata: undefined,
+            metadata: nextPageMetadata(mangas.length, pageSize, page, metadata),
         };
     }
 
     async getMangaListDiscoverSectionItems(
         section: DiscoverSection,
+        metadata?: Kavita.Metadata,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const kavitaURL = getKavitaUrl();
-        const pageSize = getKavitaPageSize();
+        const pageSize = getKavitaPageSizeNumber();
+        const page = pageFromMetadata(metadata);
 
         const request = {
-            url: `${kavitaURL}/Series/on-deck?PageNumber=1&PageSize=${pageSize}`,
+            url: `${kavitaURL}/Series/on-deck?PageNumber=${page}&PageSize=${pageSize}`,
             method: "POST",
         };
         const json = await fetchJSON<Kavita.SerieResponse[]>(request);
@@ -359,27 +360,34 @@ export class DiscoverProvider {
                 supertitle: undefined,
                 metadata: undefined,
             })),
-            metadata: undefined,
+            metadata: nextPageMetadata(json.length, pageSize, page, metadata),
         };
     }
 
     /**
      * Fetches latest chapter updates for the updates section
      */
-    async getLatestUpdatesDiscoverSectionItems(): Promise<
-        PagedResults<DiscoverSectionItem>
-    > {
+    async getLatestUpdatesDiscoverSectionItems(
+        metadata?: Kavita.Metadata,
+    ): Promise<PagedResults<DiscoverSectionItem>> {
         const kavitaURL = getKavitaUrl();
+        const pageSize = getKavitaPageSizeNumber();
+        const page = pageFromMetadata(metadata);
 
         const chapterRequest = {
-            url: `${kavitaURL}/Series/recently-updated-series`,
+            url: `${kavitaURL}/Series/recently-updated-series?PageNumber=${page}&PageSize=${pageSize}`,
             method: "POST",
         };
 
         const series =
             await fetchJSON<Kavita.RecentlyUpdatedResponse[]>(chapterRequest);
 
-        const nextMetadata = undefined;
+        const nextMetadata = nextPageMetadata(
+            series.length,
+            pageSize,
+            page,
+            metadata,
+        );
 
         const items: DiscoverSectionItem[] = [];
         for (const serie of series) {
@@ -413,12 +421,11 @@ export class DiscoverProvider {
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const kavitaURL = getKavitaUrl();
         const kavitaAPI = getKavitaApiKey();
-        const pageSize = getKavitaPageSize();
-        const offset: number = (metadata?.offset ?? 0) + 1;
-        const collectedIds: string[] = metadata?.collectedIds ?? [];
+        const pageSize = getKavitaPageSizeNumber();
+        const page = pageFromMetadata(metadata);
 
         const request = {
-            url: `${kavitaURL}/Series/recently-added-v2?PageNumber=${offset}&PageSize=${pageSize}`,
+            url: `${kavitaURL}/Series/recently-added-v2?PageNumber=${page}&PageSize=${pageSize}`,
             body: JSON.stringify({
                 id: 0,
                 name: "all",
@@ -446,13 +453,9 @@ export class DiscoverProvider {
                 type: "simpleCarouselItem",
             });
         }
-        const nextMetadata: Kavita.Metadata | undefined =
-            items.length < parseInt(pageSize)
-                ? undefined
-                : { offset: offset, collectedIds };
         return {
             items: items,
-            metadata: nextMetadata,
+            metadata: nextPageMetadata(items.length, pageSize, page, metadata),
         };
     }
 }
