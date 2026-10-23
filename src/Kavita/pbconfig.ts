@@ -1,4 +1,4 @@
-import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
+import { ContentRating, ExtensionInfo, SourceIntents } from "@paperback/types";
 
 export default {
     name: "Kavita",
@@ -8,11 +8,11 @@ export default {
     language: "multi",
     contentRating: ContentRating.EVERYONE,
     capabilities: [
-        SourceIntents.SETTINGS_UI,
-        SourceIntents.DISCOVER_SECIONS,
-        SourceIntents.MANGA_SEARCH,
-        SourceIntents.MANGA_CHAPTERS,
-        SourceIntents.MANGA_PROGRESS,
+        SourceIntents.SETTINGS_FORM_PROVIDING,
+        SourceIntents.DISCOVER_SECTION_PROVIDING,
+        SourceIntents.SEARCH_RESULT_PROVIDING,
+        SourceIntents.CHAPTER_PROVIDING,
+        SourceIntents.PROGRESS_PROVIDING,
         SourceIntents.MANAGED_COLLECTION_PROVIDING,
     ],
     badges: [],
@@ -23,4 +23,4 @@ export default {
             github: "https://github.com/Swillam",
         },
     ],
-} satisfies SourceInfo;
+} satisfies ExtensionInfo;
