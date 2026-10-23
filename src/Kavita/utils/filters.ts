@@ -2,6 +2,7 @@ import type { SearchQuery } from "@paperback/types";
 
 // Kavita FilterField enum values
 export const FILTER_FIELD = {
+    publicationStatus: 2,
     tags: 6,
     characters: 9,
     publisher: 10,
@@ -13,10 +14,15 @@ export const FILTER_FIELD = {
     penciller: 16,
     writers: 17,
     genres: 18,
+    libraries: 19,
+    readProgress: 20,
 } as const;
 
 // Kavita FilterComparison enum values
 export const FILTER_COMPARISON = {
+    Equal: 0,
+    GreaterThan: 1,
+    LessThan: 3,
     Contains: 5,
     MustContains: 6,
     NotContains: 8,
@@ -44,7 +50,28 @@ export interface FilterGroup {
 export interface FilterPlan {
     main: FilterGroup | undefined;
     excluded: FilterGroup | undefined;
+    // Conditions that every result must also satisfy, when they cannot be
+    // merged in `main`: the results are intersected with this request
+    required: FilterGroup | undefined;
 }
+
+// Value of the dropdown filters meaning "no restriction"
+export const ANY_VALUE = "any";
+
+// Kavita PublicationStatus enum values
+export const PUBLICATION_STATUS_OPTIONS = [
+    { id: "0", value: "Ongoing" },
+    { id: "1", value: "Hiatus" },
+    { id: "2", value: "Completed" },
+    { id: "3", value: "Cancelled" },
+    { id: "4", value: "Ended" },
+];
+
+export const READ_STATE_OPTIONS = [
+    { id: "unread", value: "Unread" },
+    { id: "reading", value: "In progress" },
+    { id: "read", value: "Read" },
+];
 
 /**
  * Extracts the numeric Kavita id from the tag ids used in the UI:
@@ -124,7 +151,7 @@ export function parseFilters(query: SearchQuery): {
  * include statements in one request, the excluded series are fetched
  * separately and removed from the results.
  */
-export function buildFilterPlan(query: SearchQuery): FilterPlan {
+function buildTagPlan(query: SearchQuery): Omit<FilterPlan, "required"> {
     const { include, exclude, includeCombination, excludeCombination } =
         parseFilters(query);
 
@@ -182,5 +209,98 @@ export function buildFilterPlan(query: SearchQuery): FilterPlan {
     return {
         main: { statements: include, combination: includeCombination },
         excluded: { statements: exclude, combination: excludeCombination },
+    };
+}
+
+/**
+ * Library, publication status and read state selected in the dropdown filters,
+ * as statements that must all be satisfied.
+ */
+export function parseConstraints(
+    query: SearchQuery,
+): Kavita.FilterStatementDto[] {
+    const statements: Kavita.FilterStatementDto[] = [];
+
+    for (const filter of query.filters ?? []) {
+        const value = typeof filter.value === "string" ? filter.value : "";
+        if (value === "" || value === ANY_VALUE) continue;
+
+        if (filter.id === "library" && /^\d+$/.test(value)) {
+            statements.push({
+                comparison: FILTER_COMPARISON.Equal,
+                field: FILTER_FIELD.libraries,
+                value,
+            });
+        } else if (filter.id === "status" && /^\d+$/.test(value)) {
+            statements.push({
+                comparison: FILTER_COMPARISON.Equal,
+                field: FILTER_FIELD.publicationStatus,
+                value,
+            });
+        } else if (filter.id === "readState") {
+            const progress = (comparison: number, percent: string) => ({
+                comparison,
+                field: FILTER_FIELD.readProgress,
+                value: percent,
+            });
+            if (value === "unread") {
+                statements.push(progress(FILTER_COMPARISON.Equal, "0"));
+            } else if (value === "reading") {
+                statements.push(
+                    progress(FILTER_COMPARISON.GreaterThan, "0"),
+                    progress(FILTER_COMPARISON.LessThan, "100"),
+                );
+            } else if (value === "read") {
+                statements.push(progress(FILTER_COMPARISON.Equal, "100"));
+            }
+        }
+    }
+
+    return statements;
+}
+
+/**
+ * Turns the selected filters into the Kavita requests to run: tags with their
+ * include/exclude operators, plus the dropdown constraints (library, status,
+ * read state) which are merged in the main request whenever it is ANDed.
+ */
+export function buildFilterPlan(query: SearchQuery): FilterPlan {
+    const plan = buildTagPlan(query);
+    const constraints = parseConstraints(query);
+
+    if (constraints.length === 0) return { ...plan, required: undefined };
+
+    if (!plan.main) {
+        return {
+            ...plan,
+            main: {
+                statements: constraints,
+                combination: FILTER_COMBINATION.And,
+            },
+            required: undefined,
+        };
+    }
+
+    // AND (or a single statement, where AND and OR are the same) can take more statements
+    if (
+        plan.main.combination === FILTER_COMBINATION.And ||
+        plan.main.statements.length <= 1
+    ) {
+        return {
+            ...plan,
+            main: {
+                statements: [...plan.main.statements, ...constraints],
+                combination: FILTER_COMBINATION.And,
+            },
+            required: undefined,
+        };
+    }
+
+    return {
+        ...plan,
+        required: {
+            statements: constraints,
+            combination: FILTER_COMBINATION.And,
+        },
     };
 }
