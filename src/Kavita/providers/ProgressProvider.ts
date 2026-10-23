@@ -9,7 +9,7 @@ import {
 import { MangaProgressForm } from "../forms/MangaProgressForm";
 import { getKavitaUrl } from "../settings";
 import { isChapterRead } from "../utils/chapters";
-import { fetchJSON } from "../utils/CommonUtils";
+import { fetchJSON, sendChecked } from "../utils/CommonUtils";
 import { toInt } from "../utils/numbers";
 import { ChapterProvider } from "./ChapterProvider";
 
@@ -164,10 +164,7 @@ export class ProgressProvider {
             };
 
             try {
-                const [response] = await Application.scheduleRequest(request);
-                if (response.status >= 400) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+                await sendChecked(request);
                 successfulItems.push(action.id);
                 this.chapterProvider.invalidateChapters(mangaId);
             } catch (error) {

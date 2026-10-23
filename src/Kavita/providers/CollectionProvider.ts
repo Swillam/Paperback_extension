@@ -11,7 +11,7 @@ import {
     parseCollectionRef,
     WANT_TO_READ_ID,
 } from "../utils/collections";
-import { fetchJSON } from "../utils/CommonUtils";
+import { fetchJSON, sendChecked } from "../utils/CommonUtils";
 import { seriesToSourceManga, toSeriesIds } from "../utils/manga";
 
 const PAGE_SIZE = 100;
@@ -148,15 +148,10 @@ export class CollectionProvider {
             return;
         }
 
-        const [response] = await Application.scheduleRequest({
+        await sendChecked({
             url: `${getKavitaUrl()}${path}`,
             method: "POST",
             body: JSON.stringify(body),
         });
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error(
-                `Kavita request ${path} failed (HTTP ${response.status})`,
-            );
-        }
     }
 }

@@ -1,3 +1,5 @@
+import { isOlderThan, RECOMMENDED_KAVITA_VERSION } from "./version";
+
 /**
  * Describes the outcome of an authentication attempt with the given settings,
  * as a message that can be shown to the user.
@@ -35,7 +37,12 @@ export async function checkConnection(
         const version = data.kavitaVersion
             ? ` (Kavita ${data.kavitaVersion})`
             : "";
-        return `Connected as ${data.username ?? "unknown user"}${version}.`;
+        const old =
+            data.kavitaVersion &&
+            isOlderThan(data.kavitaVersion, RECOMMENDED_KAVITA_VERSION)
+                ? ` Kavita ${RECOMMENDED_KAVITA_VERSION.join(".")} or newer is recommended: some features may not work.`
+                : "";
+        return `Connected as ${data.username ?? "unknown user"}${version}.${old}`;
     } catch (error) {
         return `Cannot reach the server: ${String(error)}`;
     }
