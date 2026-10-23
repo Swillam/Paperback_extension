@@ -25,6 +25,8 @@ import {
     READ_STATE_OPTIONS,
     type FilterGroup,
 } from "../utils/filters";
+import { coverUrl } from "../utils/images";
+import { LIST_CONTENT_RATING } from "../utils/rating";
 import { getSortingOptionList, kavitaSortFor } from "../utils/sorting";
 
 // Upper bound when fetching series in a single request (search and exclusions)
@@ -232,7 +234,8 @@ export class SearchProvider {
                 titleSearchIds.push(`${manga.id}`);
                 titleSearchTiles.push({
                     title: manga.name,
-                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                    imageUrl: coverUrl(kavitaURL, manga.id, kavitaAPI),
+                    contentRating: LIST_CONTENT_RATING,
                     mangaId: `${manga.id}`,
                 });
             }
@@ -243,7 +246,8 @@ export class SearchProvider {
                 titleSearchIds.push(`${manga.seriesId}`);
                 titleSearchTiles.push({
                     title: manga.name,
-                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.seriesId}&apiKey=${kavitaAPI}`,
+                    imageUrl: coverUrl(kavitaURL, manga.seriesId, kavitaAPI),
+                    contentRating: LIST_CONTENT_RATING,
                     mangaId: `${manga.seriesId}`,
                 });
             }
@@ -281,7 +285,12 @@ export class SearchProvider {
                             titleSearchIds.push(`${manga.id}`);
                             titleSearchTiles.push({
                                 title: manga.name,
-                                imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                                imageUrl: coverUrl(
+                                    kavitaURL,
+                                    manga.id,
+                                    kavitaAPI,
+                                ),
+                                contentRating: LIST_CONTENT_RATING,
                                 mangaId: `${manga.id}`,
                             });
                         }
@@ -334,7 +343,12 @@ export class SearchProvider {
                                 titleSearchIds.push(`${manga.id}`);
                                 titleSearchTiles.push({
                                     title: manga.name,
-                                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                                    imageUrl: coverUrl(
+                                        kavitaURL,
+                                        manga.id,
+                                        kavitaAPI,
+                                    ),
+                                    contentRating: LIST_CONTENT_RATING,
                                     mangaId: `${manga.id}`,
                                 });
                             }
@@ -398,7 +412,8 @@ export class SearchProvider {
                 if (requiredIds && !requiredIds.has(`${manga.id}`)) continue;
                 tagSearchTiles.push({
                     title: manga.name,
-                    imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
+                    imageUrl: coverUrl(kavitaURL, manga.id, kavitaAPI),
+                    contentRating: LIST_CONTENT_RATING,
                     mangaId: `${manga.id}`,
                 });
             }
