@@ -3,9 +3,9 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "Kavita",
     description: "Kavita client extension for Paperback",
-    version: "1.0.0-alpha.14",
+    version: "1.0.0-alpha.15",
     icon: "icon.png",
-    language: "mutli",
+    language: "multi",
     contentRating: ContentRating.EVERYONE,
     capabilities: [
         SourceIntents.SETTINGS_UI,

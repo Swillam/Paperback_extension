@@ -9,47 +9,6 @@ export const KAVITA_PUBLICATION_STATUS: Record<number, string> = {
     4: "Ended",
 };
 
-export const KAVITA_PERSON_ROLES: Record<string, string> = {
-    "1": "other",
-    "2": "artist",
-    "3": "writers", // KavitaAPI /api/series/all uses 'writers' instead of 'writer'
-    "4": "penciller",
-    "5": "inker",
-    "6": "colorist",
-    "7": "letterer",
-    "8": "coverArtist",
-    "9": "editor",
-    "10": "publisher",
-    "11": "character",
-    "12": "translators", // KavitaAPI /api/series/all uses 'translators' instead of 'translator'
-};
-
-//
-// Kavya Setting State Methods
-//
-export const DEFAULT_VALUES: Record<string, string | number | boolean> = {
-    kavitaAddress: "https://demo.kavitareader.com",
-    kavitaAPIUrl: "https://demo.kavitareader.com/api",
-    kavitaAPIKey: "",
-    pageSize: 40,
-
-    showOnDeck: true,
-    showRecentlyUpdated: true,
-    showNewlyAdded: true,
-    excludeUnsupportedLibrary: false,
-
-    enableRecursiveSearch: false,
-};
-
-/**
- * Validates manga ID format, throws error for legacy IDs
- */
-export function checkId(id: string): void {
-    if (!id.includes("-")) {
-        throw new Error("OLD ID: PLEASE REFRESH AND CLEAR ORPHANED CHAPTERS");
-    }
-}
-
 /**
  * Fetches and parses JSON response from API
  */
