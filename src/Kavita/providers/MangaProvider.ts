@@ -1,6 +1,11 @@
 import { ContentRating, SourceManga, Tag, TagSection } from "@paperback/types";
 import { getKavitaApiKey, getKavitaUrl } from "../settings";
 import { fetchJSON, KAVITA_PUBLICATION_STATUS } from "../utils/CommonUtils";
+import {
+    buildSynopsis,
+    secondaryTitles,
+    seriesInfoLines,
+} from "../utils/manga";
 
 /**
  * Handles fetching manga details and information
@@ -55,15 +60,18 @@ export class MangaProvider {
             mangaId: mangaId,
             mangaInfo: {
                 primaryTitle: seriesResult.name,
-                secondaryTitles: [
-                    seriesResult.originalName,
+                secondaryTitles: secondaryTitles(seriesResult.name, [
                     seriesResult.localizedName,
+                    seriesResult.originalName,
                     seriesResult.sortName,
-                ],
+                ]),
                 thumbnailUrl: `${kavitaURL}/image/series-cover?seriesId=${mangaId}&apiKey=${kavitaAPI}`,
                 author: authors.join(", "),
                 artist: artists.join(", "),
-                synopsis: seriesMetadata.summary.replace(/<[^>]+>/g, ""),
+                synopsis: buildSynopsis(
+                    seriesMetadata.summary,
+                    seriesInfoLines(seriesMetadata),
+                ),
                 status:
                     KAVITA_PUBLICATION_STATUS[
                         seriesMetadata.publicationStatus
