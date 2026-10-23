@@ -254,8 +254,7 @@ export class SearchProvider {
         if (query.filters) {
             for (const filter of query.filters) {
                 const options = (filter as Record<string, unknown>).options as
-                    | { id: string; value: string }[]
-                    | undefined;
+                    { id: string; value: string }[] | undefined;
                 if (!options || !Array.isArray(options)) continue;
 
                 const match = options.find((opt) => opt.id === tagId);
@@ -291,7 +290,7 @@ export class SearchProvider {
         const tagSearchTiles: SearchResultItem[] = [];
         const titleSearchTiles: SearchResultItem[] = [];
 
-        let result: SearchResultItem[] = [];
+        let result: SearchResultItem[];
 
         // Handle text-based search
         if (typeof query.title === "string" && query.title !== "") {

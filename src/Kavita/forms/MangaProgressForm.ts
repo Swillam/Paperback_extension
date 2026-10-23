@@ -51,6 +51,11 @@ export class MangaProgressForm extends Form {
         return getVisualLength(title) + getVisualLength(value) + 2 > 45;
     }
 
+    // Gives Application.Selector the concrete type instead of the polymorphic `this`
+    private static asSelf(form: MangaProgressForm): MangaProgressForm {
+        return form;
+    }
+
     getSections(): FormSectionElement[] {
         const tagRows: FormItemElement<unknown>[] = [];
         if (this.sourceManga.mangaInfo.tagGroups?.length) {
@@ -166,7 +171,7 @@ export class MangaProgressForm extends Form {
                     minItemCount: 1,
                     maxItemCount: 1,
                     onValueChange: Application.Selector(
-                        this as MangaProgressForm,
+                        MangaProgressForm.asSelf(this),
                         "handleStatusChange",
                     ),
                 }),
@@ -338,6 +343,7 @@ export class MangaProgressForm extends Form {
             console.log(`Error updating manga progress: ${String(error)}`);
             throw new Error(
                 `Failed to update manga progress: ${String(error)}`,
+                { cause: error },
             );
         }
     }
