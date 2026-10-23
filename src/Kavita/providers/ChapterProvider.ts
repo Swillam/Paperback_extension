@@ -12,15 +12,38 @@ import {
     stripFileExtension,
 } from "../utils/chapters";
 import { fetchJSON } from "../utils/CommonUtils";
+import { TtlCache } from "../utils/TtlCache";
+
+const CHAPTER_CACHE_TTL_MS = 10_000;
 
 /**
  * Handles fetching and processing of manga chapters
  */
 export class ChapterProvider {
+    // The app asks for the chapters of a series several times in a row
+    // (chapter list, progress, progress form): avoid hitting the server each time
+    private chapterCache = new TtlCache<Chapter[]>(CHAPTER_CACHE_TTL_MS);
+
+    /**
+     * Forgets the cached chapters of a series, to call after changing its progress
+     */
+    invalidateChapters(mangaId: string): void {
+        this.chapterCache.delete(mangaId);
+    }
+
     /**
      * Fetches chapters for a manga, optionally updating metadata
      */
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
+        const cached = this.chapterCache.get(sourceManga.mangaId);
+        if (cached) return [...cached];
+
+        const chapters = await this.fetchChapters(sourceManga);
+        this.chapterCache.set(sourceManga.mangaId, chapters);
+        return [...chapters];
+    }
+
+    private async fetchChapters(sourceManga: SourceManga): Promise<Chapter[]> {
         const kavitaUrl = getKavitaUrl();
         const mangaId = sourceManga.mangaId;
 
@@ -139,7 +162,7 @@ export class ChapterProvider {
             };
             const result = await fetchJSON<Kavita.ChapterResponse>(request);
             if (result) {
-                const latestApiChapter = result[0].lastModifiedUtc;
+                const latestApiChapter = result[0]?.lastModifiedUtc;
                 const latestStoredChapter =
                     manga.mangaInfo?.additionalInfo?.latestUploadedChapter;
 
