@@ -7,8 +7,18 @@ import {
     Tag,
     TagSection,
 } from "@paperback/types";
-import { getKavitaApiKey, getKavitaPageSize, getKavitaUrl } from "../settings";
+import {
+    getKavitaApiKey,
+    getKavitaPageSize,
+    getKavitaUrl,
+    isDiscoverSectionEnabled,
+} from "../settings";
 import { fetchJSON } from "../utils/CommonUtils";
+import {
+    FILTER_COMBINATION,
+    FILTER_COMPARISON,
+    FILTER_FIELD,
+} from "../utils/filters";
 
 /**
  * Provides manga discover sections and content for the home page
@@ -19,7 +29,7 @@ export class DiscoverProvider {
      */
     async getDiscoverSections(): Promise<DiscoverSection[]> {
         const kavitaURL = getKavitaUrl();
-        const sections: DiscoverSection[] = [
+        const allSections: DiscoverSection[] = [
             {
                 id: "ondeck",
                 title: "On Deck",
@@ -41,6 +51,12 @@ export class DiscoverProvider {
                 type: DiscoverSectionType.genres,
             },
         ];
+
+        const sections = allSections.filter((section) =>
+            isDiscoverSectionEnabled(section.id),
+        );
+
+        if (!isDiscoverSectionEnabled("libraries")) return sections;
 
         const request = {
             url: `${kavitaURL}/Library/libraries`,
@@ -178,11 +194,19 @@ export class DiscoverProvider {
         const pageSize = getKavitaPageSize();
 
         const request: Request = {
-            url: `${kavitaURL}/Series/all-v2?libraryId=${section.id}&PageNumber=1&PageSize=${pageSize}`,
+            // The libraryId query parameter is ignored by Kavita: filter with a statement
+            url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
             body: JSON.stringify({
                 id: 0,
                 name: "all",
-                combination: 0,
+                statements: [
+                    {
+                        comparison: FILTER_COMPARISON.Equal,
+                        field: FILTER_FIELD.libraries,
+                        value: section.id,
+                    },
+                ],
+                combination: FILTER_COMBINATION.And,
                 sortOptions: {
                     sortField: 1,
                     isAscending: true,
@@ -197,8 +221,7 @@ export class DiscoverProvider {
             throw new Error(`Failed to create results for ${section.title}`);
         }
 
-        const libraryId = Number(section.id);
-        const mangas = json.filter((x) => x.libraryId === libraryId);
+        const mangas = json;
 
         if (mangas.length === 0) {
             return { items: [], metadata: undefined };
