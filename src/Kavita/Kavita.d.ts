@@ -429,7 +429,6 @@ declare namespace Kavita {
 
     interface Metadata {
         offset?: number;
-        collectedIds?: string[];
     }
 
     interface RecentlyUpdatedResponse {
