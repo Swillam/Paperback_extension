@@ -65,6 +65,7 @@ export const DISCOVER_SECTION_TOGGLES = [
     { id: "recently_added", title: "Recently Added" },
     { id: "tag_sections", title: "Tag Sections" },
     { id: "libraries", title: "Library Sections" },
+    { id: "smart_filters", title: "Smart Filters" },
 ] as const;
 
 export function getDiscoverSectionStateKey(id: string): string {

@@ -10,6 +10,7 @@ import {
 import {
     getKavitaApiKey,
     getKavitaPageSize,
+    getKavitaPageSizeNumber,
     getKavitaUrl,
     isDiscoverSectionEnabled,
 } from "../settings";
@@ -19,6 +20,11 @@ import {
     FILTER_COMPARISON,
     FILTER_FIELD,
 } from "../utils/filters";
+import {
+    parseSmartFilterSectionId,
+    SERIES_ENTITY_TYPE,
+    smartFilterSectionId,
+} from "../utils/smartFilters";
 
 /**
  * Provides manga discover sections and content for the home page
@@ -56,25 +62,29 @@ export class DiscoverProvider {
             isDiscoverSectionEnabled(section.id),
         );
 
-        if (!isDiscoverSectionEnabled("libraries")) return sections;
+        if (isDiscoverSectionEnabled("libraries")) {
+            const request = {
+                url: `${kavitaURL}/Library/libraries`,
+                method: "GET",
+            };
 
-        const request = {
-            url: `${kavitaURL}/Library/libraries`,
-            method: "GET",
-        };
+            const result = await fetchJSON<Kavita.AllLibraries>(request);
 
-        const result = await fetchJSON<Kavita.AllLibraries>(request);
+            for (const library of result) {
+                if (library.type === 2) {
+                    continue;
+                }
 
-        for (const library of result) {
-            if (library.type === 2) {
-                continue;
+                sections.push({
+                    id: `${library.id}`,
+                    title: library.name,
+                    type: DiscoverSectionType.prominentCarousel,
+                });
             }
+        }
 
-            sections.push({
-                id: `${library.id}`,
-                title: library.name,
-                type: DiscoverSectionType.prominentCarousel,
-            });
+        if (isDiscoverSectionEnabled("smart_filters")) {
+            sections.push(...(await this.getSmartFilterSections()));
         }
 
         return sections;
@@ -181,7 +191,89 @@ export class DiscoverProvider {
             return this.getTags(section);
         }
 
+        if (parseSmartFilterSectionId(sectionId) !== undefined) {
+            return this.getSmartFilterSectionItems(section, metadata);
+        }
+
         return this.getLibrarySection(section);
+    }
+
+    /**
+     * One carousel per series smart filter saved by the user in Kavita
+     */
+    private async getSmartFilterSections(): Promise<DiscoverSection[]> {
+        try {
+            const filters = await fetchJSON<Kavita.SmartFilter[]>({
+                url: `${getKavitaUrl()}/Filter`,
+                method: "GET",
+            });
+
+            return filters
+                .filter((filter) => filter.entityType === SERIES_ENTITY_TYPE)
+                .map((filter) => ({
+                    id: smartFilterSectionId(filter.id),
+                    title: filter.name,
+                    type: DiscoverSectionType.simpleCarousel,
+                }));
+        } catch (error) {
+            // Older Kavita versions have no smart filters: keep the other sections
+            console.log(`Could not load the smart filters: ${String(error)}`);
+            return [];
+        }
+    }
+
+    /**
+     * Runs a smart filter saved in Kavita
+     */
+    async getSmartFilterSectionItems(
+        section: DiscoverSection,
+        metadata: Kavita.Metadata | undefined,
+    ): Promise<PagedResults<DiscoverSectionItem>> {
+        const kavitaURL = getKavitaUrl();
+        const filterId = parseSmartFilterSectionId(section.id);
+        if (filterId === undefined) {
+            throw new Error(`Unknown smart filter section: ${section.id}`);
+        }
+
+        const filters = await fetchJSON<Kavita.SmartFilter[]>({
+            url: `${kavitaURL}/Filter`,
+            method: "GET",
+        });
+        const smartFilter = filters.find((filter) => filter.id === filterId);
+        if (!smartFilter) {
+            throw new Error(
+                `The smart filter "${section.title}" no longer exists`,
+            );
+        }
+
+        // Kavita stores the filter encoded in a string: decode it into a filter DTO
+        const decoded = await fetchJSON<object>({
+            url: `${kavitaURL}/Filter/decode`,
+            method: "POST",
+            body: JSON.stringify({ encodedFilter: smartFilter.filter }),
+        });
+
+        const pageSize = getKavitaPageSizeNumber();
+        const page = (metadata?.offset ?? 0) + 1;
+        const series = await fetchJSON<Kavita.SerieResponse[]>({
+            url: `${kavitaURL}/Series/all-v2?PageNumber=${page}&PageSize=${pageSize}`,
+            method: "POST",
+            body: JSON.stringify(decoded),
+        });
+
+        const apiKey = getKavitaApiKey();
+        return {
+            items: series.map((manga) => ({
+                type: "simpleCarouselItem",
+                mangaId: `${manga.id}`,
+                title: manga.name,
+                imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${apiKey}`,
+            })),
+            metadata:
+                series.length >= pageSize
+                    ? { offset: page, collectedIds: metadata?.collectedIds }
+                    : undefined,
+        };
     }
 
     /**
@@ -322,7 +414,7 @@ export class DiscoverProvider {
         const collectedIds: string[] = metadata?.collectedIds ?? [];
 
         const request = {
-            url: `${kavitaURL}/Series/recently-added-v2?PageNumber=1&PageSize=${pageSize}`,
+            url: `${kavitaURL}/Series/recently-added-v2?PageNumber=${offset}&PageSize=${pageSize}`,
             body: JSON.stringify({
                 id: 0,
                 name: "all",
@@ -351,7 +443,9 @@ export class DiscoverProvider {
             });
         }
         const nextMetadata: Kavita.Metadata | undefined =
-            items.length < 100 ? undefined : { offset: offset, collectedIds };
+            items.length < parseInt(pageSize)
+                ? undefined
+                : { offset: offset, collectedIds };
         return {
             items: items,
             metadata: nextMetadata,

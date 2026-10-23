@@ -1,4 +1,13 @@
 declare namespace Kavita {
+    // A smart filter saved by the user (SmartFilterDto)
+    interface SmartFilter {
+        id: number;
+        name: string;
+        // The filter, encoded in a string: decode it with /Filter/decode
+        filter: string;
+        entityType: number;
+    }
+
     type ChapterResponse = Volume[];
     type AllLibraries = LibraryResponse[];
 
