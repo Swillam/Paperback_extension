@@ -2,6 +2,11 @@
 
 Changes to the Kavita extension, newest first.
 
+## 1.0.3
+
+- Fix: the covers of the home page (and of the other lists) did not show, except for a section with a single series. Paperback's rate limiter counted every Kavita cover as an API call (it only recognises images whose address ends with `.png`, `.jpg`...), so the covers waited in a queue. Covers and chapter pages are no longer counted.
+- Fix: every request started its own sign-in when it had no token, and an image could fail because of a sign-in it did not need. Concurrent requests now share one sign-in, and images skip it.
+
 ## 1.0.2
 
 - Fix: scrolling a list or a search failed with `metadata.collectedIds: Expected value of type JSONValue, found undefined` (introduced by 1.0.1). The metadata of a page now only holds the page number.
