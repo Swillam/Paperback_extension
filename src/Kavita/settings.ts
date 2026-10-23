@@ -1,3 +1,4 @@
+import { normalizeOrder } from "./utils/discoverOrder";
 import { parsePageSize } from "./utils/numbers";
 
 export function getKavitaUrl(): string {
@@ -10,6 +11,14 @@ export function getKavitaUrl(): string {
     const url = rawUrl.trim().replace(/\/+$/, ""); // supprime les slashes de fin
 
     return url.endsWith("/api") ? url : `${url}/api`;
+}
+
+/**
+ * The server URL as typed by the user (getKavitaUrl adds the /api suffix)
+ */
+export function getKavitaUrlSetting(): string {
+    const rawUrl = Application.getState("kavita_url");
+    return typeof rawUrl === "string" ? rawUrl : "";
 }
 
 export function setKavitaUrl(url: string): void {
@@ -78,4 +87,81 @@ export function getDiscoverSectionStateKey(id: string): string {
 export function isDiscoverSectionEnabled(id: string): boolean {
     const value = Application.getState(getDiscoverSectionStateKey(id));
     return typeof value === "boolean" ? value : true;
+}
+
+// Keys of the discover section order and of the update settings
+export const DISCOVER_ORDER_KEY = "kavita_discover_order";
+export const OPTIMIZE_UPDATES_KEY = "kavita_optimize_updates";
+export const SKIP_UNREAD_KEY = "kavita_skip_unread";
+export const SKIP_NEW_KEY = "kavita_skip_new";
+export const SKIP_STATUS_KEY = "kavita_skip_status";
+
+/**
+ * Order of the discover section groups chosen by the user
+ */
+export function getDiscoverOrder(): string[] {
+    return normalizeOrder(Application.getState(DISCOVER_ORDER_KEY));
+}
+
+/**
+ * Whether the update check only fetches the series that changed (on by default)
+ */
+export function getOptimizeUpdates(): boolean {
+    const value = Application.getState(OPTIMIZE_UPDATES_KEY);
+    return typeof value === "boolean" ? value : true;
+}
+
+function readThreshold(key: string, fallback: number): number {
+    const value: unknown = Application.getState(key);
+    const raw: unknown = Array.isArray(value) ? value[0] : value;
+    const parsed =
+        typeof raw === "number"
+            ? raw
+            : typeof raw === "string"
+              ? parseInt(raw)
+              : NaN;
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100
+        ? parsed
+        : fallback;
+}
+
+/**
+ * Series with at least this many unread chapters (1 = any, else a percentage)
+ * are not checked for updates. Defaults to 1, as before the setting existed.
+ */
+export function getSkipUnreadThreshold(): number {
+    return readThreshold(SKIP_UNREAD_KEY, 1);
+}
+
+export function getSkipNewThreshold(): number {
+    return readThreshold(SKIP_NEW_KEY, 0);
+}
+
+/**
+ * Publication statuses ("Completed"...) that are not checked for updates
+ */
+export function getSkipStatuses(): string[] {
+    const value = Application.getState(SKIP_STATUS_KEY);
+    return Array.isArray(value)
+        ? value.filter((v): v is string => typeof v === "string")
+        : [];
+}
+
+/**
+ * Clears every setting except the server URL and the API key
+ */
+export function resetSettings(): void {
+    const keys = [
+        "kavita_page_size",
+        "kavita_enable_recursive_search",
+        DISCOVER_ORDER_KEY,
+        OPTIMIZE_UPDATES_KEY,
+        SKIP_UNREAD_KEY,
+        SKIP_NEW_KEY,
+        SKIP_STATUS_KEY,
+        ...DISCOVER_SECTION_TOGGLES.map((section) =>
+            getDiscoverSectionStateKey(section.id),
+        ),
+    ];
+    for (const key of keys) Application.setState(undefined, key);
 }

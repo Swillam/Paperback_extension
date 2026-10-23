@@ -8,6 +8,7 @@ import {
     TagSection,
 } from "@paperback/types";
 import {
+    getDiscoverOrder,
     getKavitaApiKey,
     getKavitaPageSize,
     getKavitaPageSizeNumber,
@@ -34,60 +35,63 @@ export class DiscoverProvider {
      * Returns configured discover sections based on user settings
      */
     async getDiscoverSections(): Promise<DiscoverSection[]> {
-        const kavitaURL = getKavitaUrl();
-        const allSections: DiscoverSection[] = [
-            {
+        const builtIn: Record<string, DiscoverSection> = {
+            ondeck: {
                 id: "ondeck",
                 title: "On Deck",
                 type: DiscoverSectionType.featured,
             },
-            {
+            latest_updates: {
                 id: "latest_updates",
                 title: "Latest Updates",
                 type: DiscoverSectionType.chapterUpdates,
             },
-            {
+            recently_added: {
                 id: "recently_added",
                 title: "Recently Added",
                 type: DiscoverSectionType.simpleCarousel,
             },
-            {
+            tag_sections: {
                 id: "tag_sections",
                 title: "Tag Sections",
                 type: DiscoverSectionType.genres,
             },
-        ];
+        };
 
-        const sections = allSections.filter((section) =>
-            isDiscoverSectionEnabled(section.id),
-        );
+        const sections: DiscoverSection[] = [];
 
-        if (isDiscoverSectionEnabled("libraries")) {
-            const request = {
-                url: `${kavitaURL}/Library/libraries`,
-                method: "GET",
-            };
+        // The groups come in the order chosen in the settings
+        for (const group of getDiscoverOrder()) {
+            if (!isDiscoverSectionEnabled(group)) continue;
 
-            const result = await fetchJSON<Kavita.AllLibraries>(request);
-
-            for (const library of result) {
-                if (library.type === 2) {
-                    continue;
-                }
-
-                sections.push({
-                    id: `${library.id}`,
-                    title: library.name,
-                    type: DiscoverSectionType.prominentCarousel,
-                });
+            if (group === "libraries") {
+                sections.push(...(await this.getLibrarySections()));
+            } else if (group === "smart_filters") {
+                sections.push(...(await this.getSmartFilterSections()));
+            } else if (builtIn[group]) {
+                sections.push(builtIn[group]);
             }
         }
 
-        if (isDiscoverSectionEnabled("smart_filters")) {
-            sections.push(...(await this.getSmartFilterSections()));
-        }
-
         return sections;
+    }
+
+    /**
+     * One carousel per library (book libraries are not supported)
+     */
+    private async getLibrarySections(): Promise<DiscoverSection[]> {
+        const libraries = await fetchJSON<Kavita.AllLibraries>({
+            url: `${getKavitaUrl()}/Library/libraries`,
+            method: "GET",
+        });
+
+        return libraries
+            .filter((library) => library.type !== 2)
+            .map((library) => ({
+                id: `${library.id}`,
+                title: library.name,
+                type: DiscoverSectionType.prominentCarousel,
+            }));
     }
 
     /**
