@@ -2,6 +2,11 @@
 
 Changes to the Kavita extension, newest first.
 
+## 1.0.4
+
+- Fix: the covers of the home page and of the search results did not show (except On Deck). Paperback does not show the images of the carousel items that have no content rating, and the extension never gave one. Every item now carries one ("everyone": Kavita's lists do not give the age rating of a series, so a library with adult content is also shown as everyone in the lists).
+- Cover addresses end with a harmless `&ext=.png` parameter (Kavita returns the identical image).
+
 ## 1.0.3
 
 - Fix: the covers of the home page (and of the other lists) did not show, except for a section with a single series. Paperback's rate limiter counted every Kavita cover as an API call (it only recognises images whose address ends with `.png`, `.jpg`...), so the covers waited in a queue. Covers and chapter pages are no longer counted.
