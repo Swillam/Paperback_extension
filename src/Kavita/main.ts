@@ -12,6 +12,9 @@ import {
     DiscoverSectionProviding,
     Extension,
     Form,
+    ManagedCollection,
+    ManagedCollectionChangeset,
+    ManagedCollectionProviding,
     MangaProgress,
     MangaProgressProviding,
     MangaProviding,
@@ -29,6 +32,7 @@ import {
 import { SettingsForm } from "./forms/SettingsForm";
 import { KavitaInterceptor } from "./KavitaInterceptor";
 import { ChapterProvider } from "./providers/ChapterProvider";
+import { CollectionProvider } from "./providers/CollectionProvider";
 import { DiscoverProvider } from "./providers/DiscoverProvider";
 import { MangaProvider } from "./providers/MangaProvider";
 import { ProgressProvider } from "./providers/ProgressProvider";
@@ -41,7 +45,8 @@ type KavitaImplementation = SettingsFormProviding &
     SearchResultsProviding &
     MangaProviding &
     ChapterProviding &
-    MangaProgressProviding;
+    MangaProgressProviding &
+    ManagedCollectionProviding;
 
 // Main extension class
 export class KavitaExtension implements KavitaImplementation {
@@ -58,6 +63,7 @@ export class KavitaExtension implements KavitaImplementation {
     private mangaProvider: MangaProvider = new MangaProvider();
     private chapterProvider: ChapterProvider = new ChapterProvider();
     private searchProvider: SearchProvider = new SearchProvider();
+    private collectionProvider: CollectionProvider = new CollectionProvider();
     private discoverProvider: DiscoverProvider = new DiscoverProvider();
     private progressProvider: ProgressProvider = new ProgressProvider(
         this.chapterProvider,
@@ -129,6 +135,27 @@ export class KavitaExtension implements KavitaImplementation {
         actions: TrackedMangaChapterReadAction[],
     ): Promise<ChapterReadActionQueueProcessingResult> {
         return this.progressProvider.processChapterReadActionQueue(actions);
+    }
+
+    // ManagedCollectionProviding implementation
+    async getManagedLibraryCollections(): Promise<ManagedCollection[]> {
+        return this.collectionProvider.getManagedLibraryCollections();
+    }
+
+    async getSourceMangaInManagedCollection(
+        managedCollection: ManagedCollection,
+    ): Promise<SourceManga[]> {
+        return this.collectionProvider.getSourceMangaInManagedCollection(
+            managedCollection,
+        );
+    }
+
+    async commitManagedCollectionChanges(
+        changeset: ManagedCollectionChangeset,
+    ): Promise<void> {
+        return this.collectionProvider.commitManagedCollectionChanges(
+            changeset,
+        );
     }
 
     // DiscoverSectionProviding implementation
