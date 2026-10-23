@@ -15,11 +15,15 @@ import {
 } from "../settings";
 import { fetchJSON } from "../utils/CommonUtils";
 import {
-    buildFilterStatements,
+    buildFilterPlan,
     FILTER_COMBINATION,
     FILTER_COMPARISON,
     FILTER_FIELD,
+    type FilterGroup,
 } from "../utils/filters";
+
+// Upper bound when fetching the series to remove from a tag search
+const MAX_EXCLUDED_SERIES = 1000;
 
 /**
  * Handles manga search functionality and filters
@@ -180,16 +184,16 @@ export class SearchProvider {
 
             if (enableRecursiveSearch) {
                 for (const person of titleResult?.persons ?? []) {
-                    const personName = (person as unknown as { name: string })
-                        .name;
-                    if (!personName) continue;
+                    // Kavita filters people by id, not by name
+                    const personId = (person as unknown as { id: number }).id;
+                    if (!personId) continue;
 
                     const personRequest: Request = {
                         url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
                         body: JSON.stringify({
                             id: 0,
                             name: "filter-persons",
-                            statements: this.createSearchQuery(personName),
+                            statements: this.createSearchQuery(`${personId}`),
                             combination: FILTER_COMBINATION.Or,
                             sortOptions: {
                                 sortField: 1,
@@ -225,8 +229,9 @@ export class SearchProvider {
 
                 for (const tagName of metaTagNames) {
                     for (const item of titleResult?.[tagName] ?? []) {
-                        const tagTitle = (item as Kavita.Genre).title;
-                        if (!tagTitle) continue;
+                        // Kavita filters genres and tags by id, not by title
+                        const tagId = (item as Kavita.Genre).id;
+                        if (!tagId) continue;
 
                         const tagRequest: Request = {
                             url: `${kavitaURL}/Series/all-v2?PageNumber=1&PageSize=${pageSize}`,
@@ -239,7 +244,7 @@ export class SearchProvider {
                                         field: FILTER_FIELD[
                                             tagName as keyof typeof FILTER_FIELD
                                         ],
-                                        value: tagTitle,
+                                        value: `${tagId}`,
                                     },
                                 ],
                                 combination: FILTER_COMBINATION.Or,
@@ -274,33 +279,30 @@ export class SearchProvider {
         }
 
         // Handle tag/filter-based search
-        const { includeStatements, excludeStatements, includeCombination } =
-            buildFilterStatements(query);
+        const plan = buildFilterPlan(query);
 
-        const allStatements = [...includeStatements, ...excludeStatements];
+        if (plan.main) {
+            const filterResult = await this.runFilter(
+                plan.main,
+                page,
+                pageSize,
+            );
 
-        if (allStatements.length > 0) {
-            const filterRequest: Request = {
-                url: `${kavitaURL}/Series/all-v2?PageNumber=${page + 1}&PageSize=${pageSize}`,
-                body: JSON.stringify({
-                    id: 0,
-                    name: "filter-tags",
-                    statements: allStatements,
-                    combination: includeCombination,
-                    sortOptions: {
-                        sortField: 1,
-                        isAscending: true,
-                    },
-                    limitTo: 0,
-                }),
-                method: "POST",
-            };
+            // Series that must be removed (include/exclude operators that
+            // Kavita cannot combine in a single request)
+            const excludedIds = new Set<string>();
+            if (plan.excluded) {
+                const excludedResult = await this.runFilter(
+                    plan.excluded,
+                    0,
+                    MAX_EXCLUDED_SERIES,
+                );
+                for (const manga of excludedResult)
+                    excludedIds.add(`${manga.id}`);
+            }
 
-            const filterResult =
-                await fetchJSON<Kavita.SerieResponse[]>(filterRequest);
-
-            for (const manga of filterResult ?? []) {
-                if (!manga.name) continue;
+            for (const manga of filterResult) {
+                if (!manga.name || excludedIds.has(`${manga.id}`)) continue;
                 tagSearchTiles.push({
                     title: manga.name,
                     imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${kavitaAPI}`,
@@ -322,11 +324,12 @@ export class SearchProvider {
                 result = titleSearchTiles;
             }
 
-            // Tag filter search already uses server-side pagination
+            // Tag filter search already uses server-side pagination: decide on
+            // the next page from what the server returned, before removals
             return {
                 items: result,
                 metadata:
-                    result.length >= pageSize
+                    filterResult.length >= pageSize
                         ? {
                               offset: page + 1,
                               collectedIds: metadata?.collectedIds,
@@ -346,6 +349,33 @@ export class SearchProvider {
                     ? { offset: page + 1, collectedIds: metadata?.collectedIds }
                     : undefined,
         };
+    }
+
+    /**
+     * Runs a filter request against Kavita (server-side pagination, 0-based page)
+     */
+    private async runFilter(
+        group: FilterGroup,
+        page: number,
+        pageSize: number,
+    ): Promise<Kavita.SerieResponse[]> {
+        const request: Request = {
+            url: `${getKavitaUrl()}/Series/all-v2?PageNumber=${page + 1}&PageSize=${pageSize}`,
+            body: JSON.stringify({
+                id: 0,
+                name: "filter-tags",
+                statements: group.statements,
+                combination: group.combination,
+                sortOptions: {
+                    sortField: 1,
+                    isAscending: true,
+                },
+                limitTo: 0,
+            }),
+            method: "POST",
+        };
+
+        return (await fetchJSON<Kavita.SerieResponse[]>(request)) ?? [];
     }
 
     /**

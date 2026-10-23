@@ -2,7 +2,6 @@
 // - Add the English name to the title view
 // - Add additional info to the title view
 // - Make getChapterDetails only return new chapters
-// - Fix exclude search
 
 import {
     BasicRateLimiter,
