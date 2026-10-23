@@ -157,6 +157,10 @@ describe("discover paging", () => {
                     (item) => (item as { mangaId: string }).mangaId,
                 ),
             );
+            // saved as JSON by Paperback: no undefined value allowed
+            expect(
+                JSON.parse(JSON.stringify(page.metadata ?? null)),
+            ).toStrictEqual(page.metadata ?? null);
             if (!page.metadata) break;
             metadata = page.metadata;
         }

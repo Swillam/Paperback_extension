@@ -176,7 +176,7 @@ describe("smart filters", () => {
             result.items.map((i) => (i as { mangaId: string }).mangaId),
         ).toEqual(["7", "8"]);
         // a full page means there may be more
-        expect(result.metadata).toEqual({ offset: 1, collectedIds: undefined });
+        expect(result.metadata).toStrictEqual({ offset: 1 });
     });
 
     it("stops paging on a short page", async () => {

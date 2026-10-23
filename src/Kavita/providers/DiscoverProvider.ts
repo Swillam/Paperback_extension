@@ -273,7 +273,7 @@ export class DiscoverProvider {
                 title: manga.name,
                 imageUrl: `${kavitaURL}/image/series-cover?seriesId=${manga.id}&apiKey=${apiKey}`,
             })),
-            metadata: nextPageMetadata(series.length, pageSize, page, metadata),
+            metadata: nextPageMetadata(series.length, pageSize, page),
         };
     }
 
@@ -330,7 +330,7 @@ export class DiscoverProvider {
                 supertitle: undefined,
                 metadata: undefined,
             })),
-            metadata: nextPageMetadata(mangas.length, pageSize, page, metadata),
+            metadata: nextPageMetadata(mangas.length, pageSize, page),
         };
     }
 
@@ -360,7 +360,7 @@ export class DiscoverProvider {
                 supertitle: undefined,
                 metadata: undefined,
             })),
-            metadata: nextPageMetadata(json.length, pageSize, page, metadata),
+            metadata: nextPageMetadata(json.length, pageSize, page),
         };
     }
 
@@ -382,12 +382,7 @@ export class DiscoverProvider {
         const series =
             await fetchJSON<Kavita.RecentlyUpdatedResponse[]>(chapterRequest);
 
-        const nextMetadata = nextPageMetadata(
-            series.length,
-            pageSize,
-            page,
-            metadata,
-        );
+        const nextMetadata = nextPageMetadata(series.length, pageSize, page);
 
         const items: DiscoverSectionItem[] = [];
         for (const serie of series) {
@@ -455,7 +450,7 @@ export class DiscoverProvider {
         }
         return {
             items: items,
-            metadata: nextPageMetadata(items.length, pageSize, page, metadata),
+            metadata: nextPageMetadata(items.length, pageSize, page),
         };
     }
 }

@@ -423,10 +423,7 @@ export class SearchProvider {
                 items: result,
                 metadata:
                     filterResult.length >= pageSize
-                        ? {
-                              offset: page + 1,
-                              collectedIds: metadata?.collectedIds,
-                          }
+                        ? { offset: page + 1 }
                         : undefined,
             };
         }
@@ -438,9 +435,7 @@ export class SearchProvider {
         return {
             items: result,
             metadata:
-                result.length >= pageSize
-                    ? { offset: page + 1, collectedIds: metadata?.collectedIds }
-                    : undefined,
+                result.length >= pageSize ? { offset: page + 1 } : undefined,
         };
     }
 

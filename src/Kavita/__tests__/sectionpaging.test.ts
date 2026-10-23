@@ -81,12 +81,11 @@ afterEach(() => {
 
 describe("paging helpers", () => {
     it("tells when there is a next page", () => {
-        expect(nextPageMetadata(10, 10, 1, undefined)).toEqual({
+        expect(nextPageMetadata(10, 10, 1)).toEqual({
             offset: 1,
-            collectedIds: undefined,
         });
-        expect(nextPageMetadata(9, 10, 1, undefined)).toBeUndefined();
-        expect(nextPageMetadata(0, 10, 3, undefined)).toBeUndefined();
+        expect(nextPageMetadata(9, 10, 1)).toBeUndefined();
+        expect(nextPageMetadata(0, 10, 3)).toBeUndefined();
     });
 
     it("asks the page after the one in the metadata", () => {
@@ -94,6 +93,17 @@ describe("paging helpers", () => {
         expect(pageFromMetadata({ offset: 1 })).toBe(2);
     });
 });
+
+/**
+ * Paperback saves the metadata of a page as JSON and refuses a value that is
+ * undefined ("Expected value of type JSONValue, found undefined"): the metadata
+ * must survive a JSON round trip unchanged.
+ */
+function expectJsonSafe(metadata: unknown): void {
+    expect(JSON.parse(JSON.stringify(metadata ?? null))).toStrictEqual(
+        metadata ?? null,
+    );
+}
 
 /** Loads a section page after page, like Paperback does while scrolling */
 async function loadAll(
@@ -107,6 +117,7 @@ async function loadAll(
     for (let i = 0; i < 20; i++) {
         const result = await load(metadata);
         ids.push(...result.items.map((item) => item.mangaId));
+        expectJsonSafe(result.metadata);
         if (!result.metadata) break;
         metadata = result.metadata;
     }
@@ -203,6 +214,7 @@ describe("title search", () => {
                     (item) => (item as { mangaId: string }).mangaId,
                 ),
             );
+            expectJsonSafe(result.metadata);
             if (!result.metadata) break;
             metadata = result.metadata as never;
         }
@@ -239,5 +251,44 @@ describe("title search", () => {
         expect(
             result.items.map((i) => (i as { mangaId: string }).mangaId),
         ).toEqual(["5"]);
+    });
+});
+
+describe("filtered search and browsing", () => {
+    it("pages with metadata Paperback can save", async () => {
+        total = 34;
+        const query = {
+            title: "",
+            filters: [{ id: "library", value: "1" }],
+        } as never;
+
+        const all: string[] = [];
+        let metadata = undefined as never;
+        for (let i = 0; i < 10; i++) {
+            const result = await new SearchProvider().getSearchResults(
+                query,
+                metadata,
+            );
+            all.push(
+                ...result.items.map(
+                    (item) => (item as { mangaId: string }).mangaId,
+                ),
+            );
+            expectJsonSafe(result.metadata);
+            if (!result.metadata) break;
+            metadata = result.metadata as never;
+        }
+        expect(all).toHaveLength(34);
+    });
+
+    it("browses the whole library with an empty search", async () => {
+        total = 25;
+        const query = { title: "", filters: [] } as never;
+        const first = await new SearchProvider().getSearchResults(
+            query,
+            undefined as never,
+        );
+        expect(first.items).toHaveLength(10);
+        expect(first.metadata).toStrictEqual({ offset: 1 });
     });
 });

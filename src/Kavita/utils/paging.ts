@@ -1,17 +1,18 @@
 /**
- * Metadata of the next page of a Discover section, or undefined when the last
- * page was reached (a page that is not full means there is nothing after it).
- * `page` is the 1-based page that was just loaded; the metadata stores it so
- * the next call asks for the following one.
+ * Metadata of the next page of a Discover section or of a search, or undefined
+ * when the last page was reached (a page that is not full means there is
+ * nothing after it). `page` is the 1-based page that was just loaded; the
+ * metadata stores it so the next call asks for the following one.
+ *
+ * Paperback saves the metadata as JSON and refuses a value that is undefined,
+ * so it only holds what is always defined.
  */
 export function nextPageMetadata(
     itemCount: number,
     pageSize: number,
     page: number,
-    previous: { collectedIds?: string[] } | undefined,
-): { offset: number; collectedIds: string[] | undefined } | undefined {
-    if (itemCount < pageSize) return undefined;
-    return { offset: page, collectedIds: previous?.collectedIds };
+): { offset: number } | undefined {
+    return itemCount < pageSize ? undefined : { offset: page };
 }
 
 /**
