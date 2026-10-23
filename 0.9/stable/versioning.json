@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-23T12:39:06.542Z",
+  "buildTime": "2026-10-23T12:46:09.629Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.57",
+    "toolchain": "1.0.0-alpha.64",
     "types": "1.0.0-alpha.64"
   },
   "repository": {
-    "name": "Swillam Extensions (0.9)",
+    "name": "swillam-extensions",
     "description": "Paperback extensions."
   },
   "sources": [
