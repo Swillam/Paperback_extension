@@ -15,7 +15,14 @@ export class State<T> {
      * Returns selector for binding to form elements
      */
     public get selector(): SelectorID<(value: T) => Promise<void>> {
-        return Application.Selector(this as State<T>, "updateValue");
+        return State.bindUpdate(this);
+    }
+
+    // Takes the concrete type so Application.Selector does not see the polymorphic `this`
+    private static bindUpdate<U>(
+        state: State<U>,
+    ): SelectorID<(value: U) => Promise<void>> {
+        return Application.Selector(state, "updateValue");
     }
 
     constructor(
