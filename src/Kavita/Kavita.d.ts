@@ -1,4 +1,15 @@
 declare namespace Kavita {
+    // A Kavita collection (AppUserCollectionDto); sent back as is to update it
+    interface CollectionTag {
+        id: number;
+        title: string;
+        summary: string;
+        promoted: boolean;
+        itemCount: number;
+        owner: string;
+        [key: string]: unknown;
+    }
+
     type ChapterResponse = Volume[];
     type AllLibraries = LibraryResponse[];
 
