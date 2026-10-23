@@ -280,7 +280,7 @@ export class MangaProgressForm extends Form {
             switch (this.currentStatus) {
                 case "not readed": {
                     const markUnreadRequest = {
-                        url: `${getKavitaUrl()}/api/Reader/mark-unread`,
+                        url: `${getKavitaUrl()}/Reader/mark-unread`,
                         body: JSON.stringify({
                             seriesId: this.sourceManga.mangaId,
                         }),
@@ -292,7 +292,7 @@ export class MangaProgressForm extends Form {
 
                 case "readed": {
                     const markReadRequest = {
-                        url: `${getKavitaUrl()}/api/Reader/mark-read`,
+                        url: `${getKavitaUrl()}/Reader/mark-read`,
                         body: JSON.stringify({
                             seriesId: this.sourceManga.mangaId,
                         }),
@@ -306,14 +306,19 @@ export class MangaProgressForm extends Form {
                     for (const chapter of this.chapters) {
                         if (this.readChapterIds?.has(chapter.chapterId)) {
                             const markReadRequest = {
-                                url: `${getKavitaUrl()}/api/Reader/progress`,
+                                url: `${getKavitaUrl()}/Reader/progress`,
                                 body: {
-                                    volumeId:
-                                        chapter.volume ??
+                                    volumeId: parseInt(
+                                        chapter.additionalInfo?.volumeId ??
+                                            this.sourceManga.mangaId,
+                                    ),
+                                    chapterId: parseInt(chapter.chapterId),
+                                    pageNum: parseInt(
+                                        chapter.additionalInfo?.pages ?? "0",
+                                    ),
+                                    seriesId: parseInt(
                                         this.sourceManga.mangaId,
-                                    chapterId: chapter.chapterId,
-                                    pageNum: chapter.additionalInfo?.pages || 0,
-                                    seriesId: this.sourceManga.mangaId,
+                                    ),
                                     libraryId:
                                         this.sourceManga.mangaInfo
                                             .additionalInfo?.libraryId ?? 0,

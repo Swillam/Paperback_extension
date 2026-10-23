@@ -66,7 +66,11 @@ export class KavitaInterceptor extends PaperbackInterceptor {
         data: ArrayBuffer,
     ): Promise<ArrayBuffer> {
         void request;
-        void response;
+
+        // Token expired or revoked: drop the cache so the next request re-authenticates
+        if (response.status === 401) {
+            this.clearAuthorizationString();
+        }
 
         return data;
     }
