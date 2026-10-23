@@ -20,6 +20,12 @@ updates:
               applies-to: security-updates
               patterns:
                   - "*"
+          # Must be bumped together: a types/toolchain mismatch made the
+          # extension impossible to install. Groups match in order, so this
+          # one has to come before minor_patch and major.
+          paperback:
+              patterns:
+                  - "@paperback/*"
           minor_patch:
               update-types:
                   - minor
