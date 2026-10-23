@@ -5,7 +5,14 @@ import {
     UpdateManager,
     URL,
 } from "@paperback/types";
-import { getKavitaApiKey, getKavitaUrl } from "../settings";
+import {
+    getKavitaApiKey,
+    getKavitaUrl,
+    getOptimizeUpdates,
+    getSkipNewThreshold,
+    getSkipStatuses,
+    getSkipUnreadThreshold,
+} from "../settings";
 import {
     chapterDate,
     chapterName,
@@ -144,6 +151,13 @@ export class ChapterProvider {
      * Processes titles for updates
      */
     async processTitlesForUpdates(updateManager: UpdateManager): Promise<void> {
+        // Turned off by the user: let Paperback check every series itself
+        if (!getOptimizeUpdates()) return;
+
+        const skipUnread = getSkipUnreadThreshold();
+        const skipNew = getSkipNewThreshold();
+        const skipStatuses = getSkipStatuses();
+
         const sourceManga = updateManager.getQueuedItems();
         const mangaMap = new Map(sourceManga.map((m) => [m.mangaId, m]));
         const skipUpdate: string[] = [];
@@ -184,7 +198,12 @@ export class ChapterProvider {
                         manga?.mangaInfo?.additionalInfo?.latestUploadedChapter,
                     apiMarker: apiMarkers.get(mangaId),
                     unreadChapterCount: manga?.unreadChapterCount,
+                    newChapterCount: manga?.newChapterCount,
                     chapterCount: manga?.chapterCount,
+                    status: manga?.mangaInfo?.status,
+                    skipUnread,
+                    skipNew,
+                    skipStatuses,
                 });
                 if (!refresh) skipUpdate.push(mangaId);
             }

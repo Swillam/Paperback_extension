@@ -29,6 +29,8 @@ export class State<T> {
         private form: Form,
         private persistKey: string,
         value: T,
+        // Called after the value was saved, e.g. to refresh the Discover tab
+        private onChange?: (value: T) => void,
     ) {
         this._value = value;
     }
@@ -39,6 +41,7 @@ export class State<T> {
     public async updateValue(value: T): Promise<void> {
         this._value = value;
         Application.setState(value, this.persistKey);
+        this.onChange?.(value);
         this.form.reloadForm();
     }
 }
