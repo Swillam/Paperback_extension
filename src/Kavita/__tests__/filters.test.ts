@@ -40,6 +40,9 @@ describe("extractTagId", () => {
         expect(extractTagId("people-7:Eiichiro_Oda")).toBe("7");
         expect(extractTagId("25:Comedy")).toBe("25");
         expect(extractTagId("12:Title: with colon")).toBe("12");
+        // tags of the title view only carry the id
+        expect(extractTagId("25")).toBe("25");
+        expect(extractTagId("genres-25")).toBe("25");
     });
 
     it("returns undefined without a numeric id", () => {

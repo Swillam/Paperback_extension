@@ -52,7 +52,7 @@ export interface FilterPlan {
  * Kavita's filters expect ids, not titles.
  */
 export function extractTagId(tagId: string): string | undefined {
-    return /^(?:[a-z]+-)?(\d+):/.exec(tagId)?.[1];
+    return /^(?:[a-z]+-)?(\d+)(?::|$)/.exec(tagId)?.[1];
 }
 
 /**
