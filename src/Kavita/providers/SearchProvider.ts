@@ -10,7 +10,7 @@ import {
 import {
     getKavitaApiKey,
     getKavitaEnableRecursiveSearch,
-    getKavitaPageSize,
+    getKavitaPageSizeNumber,
     getKavitaUrl,
 } from "../settings";
 import { fetchJSON } from "../utils/CommonUtils";
@@ -281,7 +281,7 @@ export class SearchProvider {
     ): Promise<PagedResults<SearchResultItem>> {
         const kavitaAPI = getKavitaApiKey();
         const kavitaURL = getKavitaUrl();
-        const pageSize: number = +getKavitaPageSize();
+        const pageSize: number = getKavitaPageSizeNumber();
         const enableRecursiveSearch = getKavitaEnableRecursiveSearch();
         const page: number = metadata?.offset ?? 0;
 

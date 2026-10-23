@@ -9,6 +9,7 @@ import {
     SourceManga,
 } from "@paperback/types";
 import { getKavitaUrl } from "../settings";
+import { toInt } from "../utils/numbers";
 
 /**
  * Form for viewing and managing manga reading progress
@@ -324,9 +325,10 @@ export class MangaProgressForm extends Form {
                                     seriesId: parseInt(
                                         this.sourceManga.mangaId,
                                     ),
-                                    libraryId:
+                                    libraryId: toInt(
                                         this.sourceManga.mangaInfo
-                                            .additionalInfo?.libraryId ?? 0,
+                                            .additionalInfo?.libraryId,
+                                    ),
                                     lastModifiedUtc: new Date().toISOString(),
                                 },
                                 method: "POST",

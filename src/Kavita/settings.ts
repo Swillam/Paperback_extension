@@ -1,3 +1,5 @@
+import { parsePageSize } from "./utils/numbers";
+
 export function getKavitaUrl(): string {
     const rawUrl = Application.getState("kavita_url");
 
@@ -27,12 +29,11 @@ export function setKavitaApiKey(apiKey: string): void {
 }
 
 export function getKavitaPageSize(): string {
-    const pageSize = Application.getState("kavita_page_size") as
-        string | undefined;
-    if (pageSize === undefined) {
-        return "20";
-    }
-    return pageSize;
+    return String(getKavitaPageSizeNumber());
+}
+
+export function getKavitaPageSizeNumber(): number {
+    return parsePageSize(Application.getState("kavita_page_size"));
 }
 
 export function setKavitaPageSize(pageSize: string): void {

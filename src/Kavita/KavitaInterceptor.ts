@@ -5,6 +5,8 @@ import { fetchJSON } from "./utils/CommonUtils";
 // Intercepts all the requests and responses and allows you to make changes to them
 export class KavitaInterceptor extends PaperbackInterceptor {
     authorization = "";
+    // url + api key the cached token was issued for
+    private authorizationKey = "";
 
     async isServerAvailable(): Promise<boolean> {
         await this.getAuthorizationString();
@@ -12,6 +14,13 @@ export class KavitaInterceptor extends PaperbackInterceptor {
     }
 
     async getAuthorizationString(): Promise<string> {
+        // Drop the cached token when the server or the API key changed
+        const currentKey = `${getKavitaUrl()}|${getKavitaApiKey()}`;
+        if (currentKey !== this.authorizationKey) {
+            this.authorization = "";
+            this.authorizationKey = currentKey;
+        }
+
         if (this.authorization === "") {
             const token = await this.getAuthorization();
 
