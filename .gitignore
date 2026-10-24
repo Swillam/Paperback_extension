@@ -2,6 +2,8 @@
 /node_modules
 /bundles
 .history
-# Conflict copies created by file synchronisation (e.g. "file 2.ts")
-* 2
-* 2.*
+# Conflict copies created by file synchronisation (e.g. "file 2.ts", "file 3.ts")
+* [0-9]
+* [0-9].*
+* [0-9][0-9]
+* [0-9][0-9].*
